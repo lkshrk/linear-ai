@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+        type: string
+      sha:
+        description: "Commit SHA to release. Defaults to the tag target."
+        required: false
+        type: string
+      force_release:
+        description: "Skip CI-success validation for the release commit."
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+      REQUESTED_SHA: ${{ inputs.sha }}
+      FORCE_RELEASE: ${{ inputs.force_release }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Resolve release commit
+        id: release_commit
+        run: |
+          set -euo pipefail
+          sha="${REQUESTED_SHA}"
+          if [ -z "$sha" ]; then
+            sha="$(git rev-list -n 1 "$TAG")"
+          fi
+          tag_sha="$(git rev-list -n 1 "$TAG")"
+          if [ "$sha" != "$tag_sha" ]; then
+            echo "Requested SHA $sha does not match $TAG target $tag_sha" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify CI succeeded for release commit
+        if: ${{ !inputs.force_release }}
+        run: |
+          set -euo pipefail
+          sha="${{ steps.release_commit.outputs.sha }}"
+          count="$(gh run list --workflow "CI" --commit "$sha" --status completed --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')"
+          if [ "$count" -lt 1 ]; then
+            echo "No successful CI run found for $sha. Re-run CI or dispatch with force_release=true." >&2
+            exit 1
+          fi
+          echo "Found successful CI run for $sha"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install plugin marketplace CLIs
+        run: npm install -g @openai/codex @anthropic-ai/claude-code
+
+      - name: Verify release version sync
+        run: |
+          make marketplace-generate
+          bun scripts/verify_release.ts --tag "$TAG" --marketplace-dir dist/marketplace
+
+      - name: Run release package smoke checks
+        run: |
+          make install-smoke
+          make skills-smoke
+          make marketplace-smoke
+
+      - name: Build release notes
+        run: |
+          cat > release-notes.md <<EOF
+          ## Install
+
+          \`\`\`sh
+          npx skills add ${{ github.repository }}
+          npx skills add ${{ github.repository }} --agent codex --agent claude-code
+          \`\`\`
+
+          ## Verify
+
+          \`\`\`sh
+          npx skills add ${{ github.repository }} --list
+          npx skills use ${{ github.repository }} --skill linear-status
+          \`\`\`
+          EOF
+
+      - name: Verify marketplace update path
+        env:
+          MARKETPLACE_PUSH_TOKEN: ${{ secrets.MARKETPLACE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "$MARKETPLACE_PUSH_TOKEN" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN is configured"
+            exit 0
+          fi
+
+          codex_ref="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.agents/plugins/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .source.ref')"
+          claude_ref="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.claude-plugin/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .source.ref')"
+          claude_version="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.claude-plugin/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .version')"
+          version="${TAG#v}"
+
+          if [ "$codex_ref" = "$TAG" ] && [ "$claude_ref" = "$TAG" ] && [ "$claude_version" = "$version" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN is missing, but marketplace is already current for $TAG"
+            exit 0
+          fi
+
+          echo "MARKETPLACE_PUSH_TOKEN secret is required to update lkshrk/agent-marketplace" >&2
+          exit 1
+
+      - name: Create or update GitHub release
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "linear-ai $TAG" \
+              --notes-file release-notes.md
+          else
+            gh release create "$TAG" \
+              --verify-tag \
+              --title "linear-ai $TAG" \
+              --notes-file release-notes.md
+          fi
+
+      - name: Bump marketplace linear-ai version
+        env:
+          MARKETPLACE_PUSH_TOKEN: ${{ secrets.MARKETPLACE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MARKETPLACE_PUSH_TOKEN" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN is missing; marketplace was verified current earlier"
+            exit 0
+          fi
+          bun scripts/publish_marketplace.ts \
+            --version "$TAG" \
+            --marketplace-repo "https://x-access-token:${MARKETPLACE_PUSH_TOKEN}@github.com/lkshrk/agent-marketplace.git" \
+            --push

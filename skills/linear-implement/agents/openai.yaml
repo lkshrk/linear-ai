@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Implement"
+  short_description: "Implement ready Linear plans with status."
+  default_prompt: "Use $linear-implement to execute this ready Linear plan and keep status updated."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for issue reads, dashboard updates, status comments, and labels."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Status"
+  short_description: "Detect current Linear workflow phase."
+  default_prompt: "Use $linear-status to inspect this Linear issue and recommend the next workflow step."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for issue and comment reads."
+policy:
+  allow_implicit_invocation: true

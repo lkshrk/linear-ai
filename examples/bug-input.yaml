@@ -1,0 +1,20 @@
+type: bug
+title: Login redirects to blank page after successful password entry
+problem: Users can enter valid credentials but cannot reach the app because the post-login redirect lands on a blank page.
+expected_behavior: After successful login, the user should land on the dashboard.
+actual_behavior: After submitting valid credentials, the browser navigates to `/auth/callback` and renders a blank page.
+reproduction_steps:
+  - Open the production web app.
+  - Log in with a valid user account.
+  - Submit the password form.
+  - Observe that the browser shows a blank `/auth/callback` page.
+context:
+  - "Page/area: login flow"
+  - "Environment: production"
+  - "Account/tenant: example tenant"
+  - "Build/version/branch: unknown"
+  - "Feature flags/config: unknown"
+  - "Related repos: web, backend"
+evidence_links:
+  - "Screenshot: attached in Linear"
+  - "Browser console log: attached in Linear"

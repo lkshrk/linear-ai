@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Create Issue"
+  short_description: "Create Linear-ready issues from rough input."
+  default_prompt: "Use $linear-create-issue to turn this rough report into a Linear-ready issue."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for teams, projects, labels, and issue writes."
+policy:
+  allow_implicit_invocation: true
