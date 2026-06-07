@@ -1,0 +1,17 @@
+type: feature
+title: Show recent workflow runs on the project overview
+target_team: Civora
+target_project: Public Beta
+component_tag: Web
+add_llm_refine: true
+problem_opportunity: Operators need to see whether recent workflow runs succeeded without opening each workflow individually.
+desired_outcome: The project overview shows recent workflow runs and their status so an operator can spot failures quickly.
+user_actor: Internal operator reviewing project health.
+current_behavior: The overview page shows project metadata but not recent workflow execution status.
+proposed_behavior: Add a recent workflow runs section to the project overview with status, run time, and link to details.
+context:
+  - "Product area: project overview"
+  - "Related workflow: workflow execution monitoring"
+  - "Related repos: web, backend"
+evidence_links:
+  - "Related operator note: linked in Linear"

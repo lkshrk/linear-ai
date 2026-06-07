@@ -1,0 +1,27 @@
+{
+  "teams": [
+    { "name": "Civora" },
+    { "name": "H-cloud" }
+  ],
+  "projects": [
+    { "name": "Public Beta", "teams": [{ "name": "Civora" }] },
+    { "name": "CMS", "teams": [{ "name": "H-cloud" }] },
+    { "name": "Better Audio Mixer", "teams": [{ "name": "H-cloud" }] }
+  ],
+  "labels": [
+    { "name": "Infra", "parent": "Component" },
+    { "name": "Admin", "parent": "Component" },
+    { "name": "Pipeline", "parent": "Component" },
+    { "name": "Web", "parent": "Component" },
+    { "name": "API", "parent": "Component" },
+    { "name": "Improvement", "parent": "Type" },
+    { "name": "Feature", "parent": "Type" },
+    { "name": "Bug", "parent": "Type" },
+    { "name": "llm-split", "parent": "LLM" },
+    { "name": "llm-review", "parent": "LLM" },
+    { "name": "llm-blocked", "parent": "LLM" },
+    { "name": "llm-active", "parent": "LLM" },
+    { "name": "llm-ready", "parent": "LLM" },
+    { "name": "llm-refine", "parent": "LLM" }
+  ]
+}

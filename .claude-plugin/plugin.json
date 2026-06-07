@@ -1,0 +1,10 @@
+{
+  "name": "linear-ai",
+  "description": "Linear issue intake, refinement, implementation, and review workflow skills.",
+  "skills": [
+    "./skills/linear-create-issue",
+    "./skills/linear-refine",
+    "./skills/linear-implement",
+    "./skills/linear-deliver-feature"
+  ]
+}

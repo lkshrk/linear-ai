@@ -1,0 +1,47 @@
+---
+name: linear-create-issue
+description: "Create or update clean Linear issues from rough bug reports, feature ideas, or copied Linear issue drafts. Use when the user asks to ingest, triage, classify, tag, or prepare a Linear issue before implementation planning."
+---
+
+# Linear Create Issue
+
+Use the repository root as the workflow source. Read and follow:
+
+- `agents/issue-intake.md`
+- `docs/issue-intake.md`
+- `docs/agent-required-passes.md`
+- `templates/linear-bug-issue.md`
+- `templates/linear-feature-issue.md`
+
+Before finalizing, query current Linear teams, projects, and labels. Use live Linear data for target team, target project, component tag, type label, and LLM labels. Do not use stale tag lists.
+
+## Linear MCP Contract
+
+Use these Linear MCP tools when available:
+
+- `list_teams` - read available Linear teams before choosing target team.
+- `list_projects` - read available Linear projects before choosing target project.
+- `list_issue_labels` - read available Type, Component, and LLM labels before proposing labels.
+- `save_issue` - create or update the Linear issue and apply labels/priority when writes are available.
+
+Use the local JavaScript runner available in the target environment. Detect it with:
+
+```sh
+bun scripts/detect_runner.ts
+```
+
+Run TypeScript helpers with that runner, for example `bun scripts/intake_issue.ts ...`, `pnpm exec tsx scripts/intake_issue.ts ...`, or `npm exec tsx -- scripts/intake_issue.ts ...`.
+
+After reading Linear MCP metadata, capture the raw results into the local snapshot shape before deterministic checks:
+
+```sh
+bun scripts/linear_metadata.ts capture --teams linear-teams.json --projects linear-projects.json --labels linear-labels.json > linear-metadata.json
+```
+
+Use equivalent `tsx` commands in npm/pnpm/yarn/node environments. The `--teams`, `--projects`, and `--labels` files should contain current outputs from `list_teams`, `list_projects`, and `list_issue_labels`.
+
+Use `scripts/linear_metadata.ts validate ...` to check the captured metadata snapshot. Use `scripts/intake_issue.ts --metadata <metadata.json> <input.yaml>` only when the issue fields already exist in structured YAML and a metadata snapshot is available. Otherwise follow the agent prompt directly and use Linear MCP tools when available.
+
+If Linear MCP write tools are unavailable, do not claim the issue was created or updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact target team, labels, priority, and issue body the human should apply.
+
+Stop when the issue body is Linear-ready and the final metadata is explicit: target team, target project if applicable, component tag, labels to apply/remove, priority if provided, and whether `llm-refine` is needed.
