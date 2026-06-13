@@ -117,6 +117,16 @@ updated_by: linear-ai
   return YAML.stringify({ ...base, ...patch });
 }
 
+async function currentPackageVersion(): Promise<string> {
+  const packageJson = JSON.parse(await Bun.file(path.join(ROOT, "package.json")).text()) as { version: string };
+  return packageJson.version;
+}
+
+async function nextPatchVersion(): Promise<string> {
+  const [major, minor, patch] = (await currentPackageVersion()).split(".").map(Number);
+  return `${major}.${minor}.${patch + 1}`;
+}
+
 function markedStatus(yaml: string): string {
   return `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
 \`\`\`yaml
@@ -1290,9 +1300,10 @@ test("runner detector returns the first available JavaScript package runner", as
 
 test("release creator dry-runs semver level bumps", async () => {
   const result = await runBun("create_release.ts", ["patch", "--dry-run"]);
+  const expectedVersion = await nextPatchVersion();
 
   assert.equal(result.code, 0, result.stderr);
-  assert.match(result.stdout, /would create release v0\.5\.2/);
+  assert.match(result.stdout, new RegExp(`would create release v${expectedVersion.replaceAll(".", "\\.")}`));
   assert.match(result.stdout, /mode: dry-run/);
 });
 
