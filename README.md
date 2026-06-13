@@ -84,7 +84,7 @@ Use linear-status to inspect HCL-123 and tell me the current phase.
 Prepare an issue:
 
 ```text
-Use linear-create-issue for this feature idea. Query available teams, projects, and component labels first.
+Use linear-create-issue for this feature idea. Query available teams, projects, and Linear labels first; propose matching tags and ask whether to add more.
 ```
 
 Refine a plan:

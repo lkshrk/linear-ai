@@ -123,7 +123,7 @@ test("required passes define unique llm state", async () => {
   assert.match(doc, /remove every other `llm-\*` workflow state label/);
 });
 
-test("issue intake asks or proposes target team, target project, and component tag", async () => {
+test("issue intake proposes matching Linear tags and asks whether to add more", async () => {
   const issueIntakeAgent = await readAgent("issue-intake");
   const issueIntakeContract = await readDoc("docs/issue-intake.md");
   const bugTemplate = await readDoc("templates/linear-bug-issue.md");
@@ -132,7 +132,8 @@ test("issue intake asks or proposes target team, target project, and component t
   for (const source of [issueIntakeAgent, issueIntakeContract]) {
     assert.match(source, /target team/i);
     assert.match(source, /target project/i);
-    assert.match(source, /component tag/i);
+    assert.match(source, /matching Linear labels/i);
+    assert.match(source, /ask whether to add more/i);
     assert.match(source, /ask or propose/i);
     assert.match(source, /query available Linear teams/i);
     assert.match(source, /query available Linear projects/i);
@@ -143,7 +144,7 @@ test("issue intake asks or proposes target team, target project, and component t
   for (const template of [bugTemplate, featureTemplate]) {
     assert.match(template, /Target team:/);
     assert.match(template, /Target project:/);
-    assert.match(template, /Component tag:/);
+    assert.match(template, /Suggested labels:/);
   }
 });
 

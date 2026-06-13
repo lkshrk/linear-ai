@@ -192,13 +192,13 @@ Create those input files from current Linear MCP results:
 - `list_projects` output -> `linear-projects.json`
 - `list_issue_labels` output -> `linear-labels.json`
 
-The capture command accepts raw wrapper objects from those tools, direct arrays, or arrays of paginated wrapper objects. It prints warnings to stderr when required metadata groups are missing, for example when no Component labels exist.
+The capture command accepts raw wrapper objects from those tools, direct arrays, or arrays of paginated wrapper objects. It prints warnings to stderr when required metadata groups such as Type or LLM labels are missing.
 
 Validate local issue metadata against the captured snapshot:
 
 ```sh
 bun scripts/linear_metadata.ts summary --metadata metadata.json
-bun scripts/linear_metadata.ts validate --metadata metadata.json --target-team Civora --target-project "Public Beta" --component-tag Web --type-label Feature --llm-label llm-refine
+bun scripts/linear_metadata.ts validate --metadata metadata.json --target-team Civora --target-project "Public Beta" --selected-labels Web,Feature --type-label Feature --llm-label llm-refine
 ```
 
 Create the snapshot from current Linear MCP results. It should contain:
@@ -222,7 +222,7 @@ bun scripts/intake_issue.ts --metadata metadata.json INPUT.yaml
 bun scripts/intake_issue.ts --metadata examples/linear-metadata.json examples/intake-feature-input.yaml
 ```
 
-The input must include `target_team`, `target_project`, and `component_tag`; the metadata snapshot validates those values before output.
+The input must include `target_team` and `target_project`. Use `selected_labels` for proposed matching Linear labels/tags; the metadata snapshot validates those values before output.
 
 ## Marked Comment Extractor
 

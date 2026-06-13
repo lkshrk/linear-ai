@@ -34,6 +34,7 @@ type Args = {
   targetTeam?: string;
   targetProject?: string;
   componentTag?: string;
+  selectedLabels?: string;
   typeLabel?: string;
   llmLabel?: string;
 };
@@ -68,6 +69,9 @@ function parseArgs(argv: string[]): Args {
       case "--component-tag":
         args.componentTag = value;
         break;
+      case "--selected-labels":
+        args.selectedLabels = value;
+        break;
       case "--type-label":
         args.typeLabel = value;
         break;
@@ -87,6 +91,17 @@ function names(values: { name?: unknown }[] | undefined): string[] {
 
 function labelsByParent(metadata: LinearMetadata, parent: string): string[] {
   return names((metadata.labels ?? []).filter((label) => label.parent === parent));
+}
+
+function allLabels(metadata: LinearMetadata): string[] {
+  return names(metadata.labels);
+}
+
+function selectedLabels(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((label) => label.trim())
+    .filter(Boolean);
 }
 
 async function loadMetadata(path: string | undefined): Promise<LinearMetadata> {
@@ -162,6 +177,7 @@ export function summarize(metadata: LinearMetadata): Record<string, string[]> {
   return {
     teams: names(metadata.teams),
     projects: names(metadata.projects),
+    labels: allLabels(metadata),
     component_tags: labelsByParent(metadata, "Component"),
     type_labels: labelsByParent(metadata, "Type"),
     llm_labels: labelsByParent(metadata, "LLM")
@@ -181,6 +197,9 @@ export function validateMetadata(metadata: LinearMetadata, args: Args): string[]
   if (args.componentTag && !summary.component_tags.includes(args.componentTag)) {
     errors.push(`component tag ${args.componentTag} is not an available Component label`);
   }
+  for (const label of selectedLabels(args.selectedLabels)) {
+    if (!summary.labels.includes(label)) errors.push(`selected label ${label} is not an available Linear label`);
+  }
   if (args.typeLabel && !summary.type_labels.includes(args.typeLabel)) {
     errors.push(`type label ${args.typeLabel} is not an available Type label`);
   }
@@ -197,7 +216,6 @@ export function metadataWarnings(metadata: LinearMetadata): string[] {
 
   if (summary.teams.length === 0) warnings.push("warning: no Linear teams found");
   if (summary.projects.length === 0) warnings.push("warning: no Linear projects found");
-  if (summary.component_tags.length === 0) warnings.push("warning: no Component labels found");
   if (summary.type_labels.length === 0) warnings.push("warning: no Type labels found");
   if (summary.llm_labels.length === 0) warnings.push("warning: no LLM labels found");
 
@@ -243,7 +261,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
 
-    throw new MetadataError("usage: bun scripts/linear_metadata.ts summary|validate --metadata metadata.json [--target-team TEAM --target-project PROJECT --component-tag LABEL --type-label LABEL --llm-label LABEL]\n       bun scripts/linear_metadata.ts capture --teams teams.json --projects projects.json --labels labels.json");
+    throw new MetadataError("usage: bun scripts/linear_metadata.ts summary|validate --metadata metadata.json [--target-team TEAM --target-project PROJECT --selected-labels LABEL[,LABEL...] --type-label LABEL --llm-label LABEL]\n       bun scripts/linear_metadata.ts capture --teams teams.json --projects projects.json --labels labels.json");
   } catch (error) {
     process.stderr.write(`${(error as Error).message}\n`);
     return 1;

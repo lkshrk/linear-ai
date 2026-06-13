@@ -15,7 +15,7 @@ Start by running `linear-status` against the actual Linear issue. Use the detect
 
 1. `detect-current-state` - run `linear-status` to identify current phase, missing evidence, state disagreement, and recommended next skill.
 2. `capture-metadata` - query live Linear teams, projects, and labels, then normalize them with `scripts/linear_metadata.ts capture`.
-3. `create-issue` - run `linear-create-issue` to create or update the issue with target team, target project, component tag, type label, and one LLM state label.
+3. `create-issue` - run `linear-create-issue` to create or update the issue with target team, target project, proposed matching labels/tags, type label, and one LLM state label.
 4. `refine-plan` - run `linear-refine` until the issue has a marked plan comment with `plan_status: ready` or an explicit blocked/accepted-unknown state.
 5. `implement` - run `linear-implement` only after the ready plan exists and the Superpowers task list is mirrored into the issue description dashboard; make code changes, run verification, update the dashboard before moving between top-level tasks, and post marked status comments only for blockers, review readiness, abandoned work, verification failures, handoffs, or write-unavailable mutations.
 6. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan/status comments and issue description dashboard before claiming the workflow is ready for review.
@@ -75,7 +75,7 @@ Use the local JavaScript package manager or runtime available to the agent. Bun 
 ## Stop Conditions
 
 - Stop at `capture-metadata` if Linear MCP read tools are unavailable and no current metadata snapshot exists.
-- Stop at `create-issue` if the target team, target project, component tag, or type label cannot be selected from live metadata.
+- Stop at `create-issue` if the target team, target project, proposed matching labels/tags, or type label cannot be selected from live metadata.
 - Stop at `refine-plan` if required product facts are missing and cannot be accepted as unknowns.
 - Stop at `implement` if verification cannot prove the ready plan was satisfied.
 - Stop at `review-handoff` if the issue cannot be moved to exactly one final LLM state label.

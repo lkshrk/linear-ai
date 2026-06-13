@@ -31,7 +31,7 @@ What should happen instead or additionally.
 
 - Target team:
 - Target project:
-- Component tag:
+- Suggested labels:
 - Product area:
 - Related workflow:
 - Related repos:
@@ -49,6 +49,6 @@ What should happen instead or additionally.
 - Do not turn feature intake into implementation planning.
 - Do not invent acceptance criteria.
 - If behavior is unclear, ask.
-- Ask or propose `Target team`, `Target project`, and `Component tag` before finalizing.
+- Ask or propose `Target team`, `Target project`, and matching `Suggested labels` before finalizing; ask whether to add more tags.
 - Add or recommend `feature`.
 - Add or recommend `llm-refine` when implementation planning is needed.

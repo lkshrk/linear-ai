@@ -25,7 +25,7 @@ Read and follow:
 - Do not write acceptance criteria or implementation plans.
 - Always use the `Civora` Linear team.
 - Before finalizing, query available Linear teams, query available Linear projects, and query available Linear labels.
-- Ask or propose a target team, target project, and component tag for every issue from the current Linear results. If the correct routing metadata is clear from the issue text, propose it; if not, ask one targeted question before finalizing.
+- Ask or propose a target team, target project, and matching Linear labels for every issue from the current Linear results. Do not require a Component label; inspect all live labels/tags, propose the likely matches, and ask whether to add more before finalizing.
 - Do not use stale or hardcoded tag lists; live Linear teams, projects, and labels are the source of truth.
 - Run the Linear Finalization Pass from `docs/agent-required-passes.md`.
 - If Linear MCP write tools are available, create or update the issue and apply the final labels directly, keeping only one `llm-*` workflow state label.
@@ -52,7 +52,7 @@ Return a Linear-ready issue draft and recommended metadata:
 - issue type: `bug`, `feature`, or `unclear`
 - target team: `Civora`
 - target project
-- component tag
+- proposed matching Linear labels/tags
 - labels to apply
 - Linear priority property, only if explicitly selected
 - whether to add `llm-refine`

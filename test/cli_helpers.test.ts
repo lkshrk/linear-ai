@@ -1372,6 +1372,7 @@ test("linear metadata helper summarizes and validates teams and labels", async (
     assert.deepEqual(parsed.teams, ["Civora", "H-cloud"]);
     assert.deepEqual(parsed.projects, ["Public Beta"]);
     assert.deepEqual(parsed.component_tags, ["API", "Web"]);
+    assert.deepEqual(parsed.labels, ["API", "Bug", "Web", "llm-refine"]);
 
     const valid = await runBun("linear_metadata.ts", [
       "validate",
@@ -1381,8 +1382,8 @@ test("linear metadata helper summarizes and validates teams and labels", async (
       "Civora",
       "--target-project",
       "Public Beta",
-      "--component-tag",
-      "Web",
+      "--selected-labels",
+      "Web,Bug,llm-refine",
       "--type-label",
       "Bug",
       "--llm-label",
@@ -1399,12 +1400,12 @@ test("linear metadata helper summarizes and validates teams and labels", async (
       "Civora",
       "--target-project",
       "Unknown Project",
-      "--component-tag",
+      "--selected-labels",
       "Mobile"
     ]);
     assert.notEqual(invalid.code, 0);
     assert.match(invalid.stderr, /target project Unknown Project is not an available Linear project/);
-    assert.match(invalid.stderr, /component tag Mobile is not an available Component label/);
+    assert.match(invalid.stderr, /selected label Mobile is not an available Linear label/);
   } finally {
     await rm(metadata.dir, { recursive: true, force: true });
   }
@@ -1467,7 +1468,6 @@ test("linear metadata helper captures raw Linear MCP list results", async () => 
       { name: "llm-refine", parent: "LLM" },
       { name: "llm-ready", parent: "LLM" }
     ]);
-    assert.match(result.stderr, /warning: no Component labels found/);
     assert.match(result.stderr, /warning: missing Type labels: Improvement/);
     assert.match(result.stderr, /warning: missing LLM labels: llm-active, llm-blocked, llm-review, llm-split/);
   } finally {
@@ -1491,7 +1491,8 @@ test("intake command renders issue body and metadata from validated Linear metad
 title: Show recent workflow runs
 target_team: Civora
 target_project: Public Beta
-component_tag: Web
+selected_labels:
+  - Web
 add_llm_refine: true
 problem_opportunity: Operators cannot spot recent workflow failures quickly.
 desired_outcome: Overview shows recent runs and statuses.
@@ -1510,7 +1511,7 @@ evidence_links: []
     assert.match(parsed.issue_body, /# Show recent workflow runs/);
     assert.match(parsed.issue_body, /Target team: Civora/);
     assert.match(parsed.issue_body, /Target project: Public Beta/);
-    assert.match(parsed.issue_body, /Component tag: Web/);
+    assert.match(parsed.issue_body, /Suggested labels: Web/);
     assert.deepEqual(parsed.metadata.labels_to_apply, ["Feature", "Web", "llm-refine"]);
     assert.equal(parsed.metadata.target_team, "Civora");
     assert.equal(parsed.metadata.target_project, "Public Beta");
