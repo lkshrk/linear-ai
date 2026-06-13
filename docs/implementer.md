@@ -42,7 +42,8 @@ Optional:
 - Clean up temporary workspaces and worktrees after merge-back and verification, unless they are intentionally kept and reported.
 - Implement all safe, unambiguous items before asking for help.
 - If one item is blocked, skip it and continue other unblocked checklist items.
-- Ask questions in batches.
+- Run in auto mode for safe, reversible implementation work from a valid ready plan. Continue through ordinary repo inspection, TDD planning, local edits, tests, validation, dashboard updates, and failed-check iteration without asking for permission between steps.
+- Ask questions in batches only when the next step is destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority, or genuinely ambiguous in a way that would create nontrivial rework.
 - Use the branch name specified by Linear or by the newest ready plan.
 - Use the PR title specified by the newest ready plan.
 - If no PR title is specified, stop and ask before opening the PR.
@@ -76,6 +77,10 @@ All placeholders must be listed in the status comment.
 
 Stop and ask when:
 
+- the next step is destructive or irreversible
+- the next step is credential-gated or external-production affecting
+- the next step materially changes scope beyond the ready plan
+- required authority or write access is missing
 - continuing requires an assumption
 - more work would cause nontrivial rework after the answer changes
 - the plan conflicts with code reality
@@ -170,7 +175,7 @@ If the gate fails, fix the failed evidence instead of overriding it.
 
 ## TDD Planning
 
-The implementer should create or maintain a repo-local implementation plan before editing code when the task is non-trivial.
+The implementer should create or maintain a repo-local implementation plan before editing code when the task is non-trivial. Creating this plan is part of auto mode and does not require a permission prompt when a valid ready Linear plan exists.
 
 That plan should include:
 

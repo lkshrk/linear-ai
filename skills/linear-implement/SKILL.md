@@ -18,6 +18,12 @@ Use the repository root as the workflow source. Read and follow:
 
 Start from the newest valid marked plan comment. Do not invent missing product behavior. If blocked, post batched questions in a marked status comment and apply or emit the correct Linear mutations.
 
+## Auto Mode
+
+Run implementation in auto mode once a valid ready plan exists. Continue through safe, reversible local inspect/edit/test/verify steps without asking for permission again. This includes reading repo context, creating the repo-local TDD plan, editing files named or implied by the ready plan, updating tests, running focused validation, updating the Linear dashboard/status evidence, and iterating on failed checks.
+
+Ask or block only when the next step is destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority, or genuinely ambiguous in a way that would create nontrivial rework. Batch blocker questions in a marked status comment instead of interrupting for routine implementation choices.
+
 No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
 
 Maintain one dashboard block in the issue description with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with CLI-style state symbols, stable ready-plan task IDs, and `last_checked` repair evidence after each top-level task state change. Inspect the actual code/worktree state before marking a task done. Use a dashboard comment only as fallback when description writes are unavailable.
@@ -85,9 +91,7 @@ If Linear MCP write tools are unavailable, do not claim labels, status, or comme
 
 ## Step Completion Handoff
 
-When implementation completes a task, blocker update, verification pass, or review-ready status, report what changed, verification evidence, current Linear labels/status, PR or patch links when present, and the recommended next step.
-
-Ask if there is anything else to add for this implementation step. If yes, continue the current step and update the code, tests, or marked status comment. If no, recommend moving to the next workflow step, normally the next unchecked task, verification, or review handoff.
+When implementation completes a task, blocker update, verification pass, or review-ready status, report what changed, verification evidence, current Linear labels/status, PR or patch links when present, and the recommended next step. Ask if there is anything else to add for blocker, abandoned, or review-ready handoffs, or when no safe unambiguous task remains. Do not ask whether to continue after routine completed tasks; continue to the next unchecked task, verification, or review handoff while work remains and the next step is safe and unambiguous.
 
 Use this response shape:
 

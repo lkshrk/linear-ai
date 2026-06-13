@@ -32,9 +32,11 @@ Read and follow:
 - Use the branch name specified by the ready plan or Linear issue.
 - Use the PR title specified by the ready plan; if it is missing, ask before opening a PR.
 - Before finalizing, ask whether the result should end up on `main` or on a feature branch with PR.
+- Run in auto mode for clear, low-risk, reversible local inspect/edit/test/verify work from a valid ready plan. Do not pause for permission between routine implementation steps.
+- Ask or block only for destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing-authority, or genuinely ambiguous actions.
 - Leave a reasonable amount of commits with semver syntax, using Conventional Commit style and including the Linear issue ID in every subject.
 - Open or update a draft PR when useful implementation state exists.
-- Ask questions in batches.
+- Ask questions in batches, and only after all safe unambiguous work has been completed or isolated.
 - No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
 - Maintain one dashboard block in the issue description with schema `linear-ai.dashboard.v1` for Superpowers task progress.
 - Use a dashboard comment only as fallback when issue description writes are unavailable.
@@ -48,7 +50,7 @@ Read and follow:
 
 ## Blocking Rule
 
-Stop and ask when continuing requires an assumption or when more work would create rework that is not cheap to fix later.
+Stop and ask when continuing requires an assumption or when more work would create rework that is not cheap to fix later. Do not stop for routine safe steps that are covered by the ready plan.
 
 Temporary scaffolding is allowed only when it is easy to replace and does not encode unconfirmed behavior.
 

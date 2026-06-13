@@ -38,6 +38,11 @@ async function smokeAgent(agent: "codex" | "claude-code", expectedPath: string):
 
 async function main(): Promise<number> {
   try {
+    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "Run implementation in auto mode once a valid ready plan exists.");
+    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority");
+    await assertContains(path.join(ROOT, "docs/implementer.md"), "Run in auto mode for safe, reversible implementation work from a valid ready plan.");
+    await assertContains(path.join(ROOT, "docs/implementer.md"), "the next step is destructive or irreversible");
+
     const listOutput = await run("npx", ["-y", "skills", "add", ROOT, "--list"], ROOT);
     for (const skill of [
       "linear-batch-close",
