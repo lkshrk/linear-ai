@@ -49,15 +49,15 @@ The source release workflow updates this marketplace after creating a GitHub rel
 ## Codex Install From Marketplace
 
 ```sh
-codex plugin marketplace add lkshrk/agent-marketplace --ref main
-codex plugin add linear-ai --marketplace linear-ai
+codex plugin marketplace add lkshrk/agent-marketplace
+codex plugin add linear-ai@lkshrk
 ```
 
 ## Claude Code Install From Marketplace
 
 ```sh
 claude plugin marketplace add lkshrk/agent-marketplace
-claude plugin install linear-ai@linear-ai
+claude plugin install linear-ai@lkshrk
 ```
 
 ## Release Automation

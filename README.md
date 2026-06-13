@@ -42,16 +42,16 @@ This repository ships Codex and Claude Code plugin manifests:
 
 Public plugin marketplace installation should use a separate tap-style marketplace repository, not this source repository directly. See [Marketplace Distribution](docs/marketplace.md).
 
-Once `lkshrk/agent-marketplace` is published, install with:
+Install from the `lkshrk` marketplace:
 
 ```sh
-codex plugin marketplace add lkshrk/agent-marketplace --ref main
-codex plugin add linear-ai --marketplace linear-ai
+codex plugin marketplace add lkshrk/agent-marketplace
+codex plugin add linear-ai@lkshrk
 ```
 
 ```sh
 claude plugin marketplace add lkshrk/agent-marketplace
-claude plugin install linear-ai@linear-ai
+claude plugin install linear-ai@lkshrk
 ```
 
 ### Linear MCP
@@ -148,12 +148,6 @@ bun scripts/create_release.ts patch --dry-run
 ## Release
 
 Tags matching `v*.*.*` run CI. If CI succeeds, the release workflow verifies the same commit and publishes the GitHub release.
-
-Latest release:
-
-```sh
-npx skills add lkshrk/linear-ai@v0.5.0 --list
-```
 
 ## License
 

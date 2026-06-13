@@ -81,6 +81,20 @@ Codex plugin compatibility is provided by:
 
 The Codex manifest points at `./skills/`, so the same skill files remain the source of truth.
 
+## Public Plugin Marketplace Install
+
+Use the tap-style marketplace repository for public plugin installs:
+
+```sh
+codex plugin marketplace add lkshrk/agent-marketplace
+codex plugin add linear-ai@lkshrk
+```
+
+```sh
+claude plugin marketplace add lkshrk/agent-marketplace
+claude plugin install linear-ai@lkshrk
+```
+
 ## Manual Install
 
 When an agent does not support the skills CLI, copy or symlink each folder under `skills/` into that agent's skill directory. Each skill folder must keep its `SKILL.md` file at the folder root.
