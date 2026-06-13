@@ -1,6 +1,6 @@
 {
   "name": "linear-ai",
-  "version": "0.5.2",
+  "version": "1.0.0",
   "description": "Linear issue intake, setup checks, status detection, refinement, implementation, review, closeout, and batch queue orchestration workflows for AI-assisted delivery.",
   "author": {
     "name": "Linear AI"
