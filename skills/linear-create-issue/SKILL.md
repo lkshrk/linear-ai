@@ -13,7 +13,7 @@ Use the repository root as the workflow source. Read and follow:
 - `templates/linear-bug-issue.md`
 - `templates/linear-feature-issue.md`
 
-Before finalizing, query current Linear teams, projects, and labels. Use live Linear data for target team, target project, matching labels/tags, type label, and LLM labels. Do not use stale tag lists. Do not require a Component label; propose likely labels from all live Linear labels and ask whether to add more tags before finalizing.
+Before finalizing, query available Linear teams, query available Linear projects, and query available Linear labels. Use live Linear data to ask or propose target team, target project, matching Linear labels/tags, type label, and LLM labels. Do not use stale or hardcoded tag lists. Do not require a Component label; propose likely labels from all live Linear labels and ask whether to add more tags before finalizing.
 
 ## Linear MCP Contract
 
@@ -23,6 +23,13 @@ Use these Linear MCP tools when available:
 - `list_projects` - read available Linear projects before choosing target project.
 - `list_issue_labels` - read available Linear labels before proposing labels.
 - `save_issue` - create or update the Linear issue and apply labels/priority when writes are available.
+
+Live intake sequence:
+
+1. Run `list_teams`, `list_projects`, and `list_issue_labels`.
+2. Propose target team, target project, and matching Linear labels from those live results.
+3. Ask whether to add more tags unless the user already explicitly declined.
+4. Only after that answer, call `save_issue` with the final label set.
 
 Use the local JavaScript runner available in the target environment. Detect it with:
 

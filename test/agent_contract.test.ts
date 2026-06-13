@@ -126,10 +126,11 @@ test("required passes define unique llm state", async () => {
 test("issue intake proposes matching Linear tags and asks whether to add more", async () => {
   const issueIntakeAgent = await readAgent("issue-intake");
   const issueIntakeContract = await readDoc("docs/issue-intake.md");
+  const createSkill = await readDoc("skills/linear-create-issue/SKILL.md");
   const bugTemplate = await readDoc("templates/linear-bug-issue.md");
   const featureTemplate = await readDoc("templates/linear-feature-issue.md");
 
-  for (const source of [issueIntakeAgent, issueIntakeContract]) {
+  for (const source of [issueIntakeAgent, issueIntakeContract, createSkill]) {
     assert.match(source, /target team/i);
     assert.match(source, /target project/i);
     assert.match(source, /matching Linear labels/i);
@@ -140,6 +141,7 @@ test("issue intake proposes matching Linear tags and asks whether to add more", 
     assert.match(source, /query available Linear labels/i);
     assert.match(source, /do not use stale or hardcoded tag lists/i);
   }
+  assert.match(createSkill, /list_issue_labels[\s\S]*ask whether to add more tags[\s\S]*save_issue/i);
 
   for (const template of [bugTemplate, featureTemplate]) {
     assert.match(template, /Target team:/);

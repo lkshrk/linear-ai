@@ -1483,6 +1483,7 @@ test("intake command renders issue body and metadata from validated Linear metad
     projects: [{ name: "Public Beta", teams: [{ name: "Civora" }] }],
     labels: [
       { name: "Web", parent: "Component" },
+      { name: "Integration", parent: "Workflow" },
       { name: "Feature", parent: "Type" },
       { name: "llm-refine", parent: "LLM" }
     ]
@@ -1493,6 +1494,7 @@ target_team: Civora
 target_project: Public Beta
 selected_labels:
   - Web
+  - Integration
 add_llm_refine: true
 problem_opportunity: Operators cannot spot recent workflow failures quickly.
 desired_outcome: Overview shows recent runs and statuses.
@@ -1511,8 +1513,8 @@ evidence_links: []
     assert.match(parsed.issue_body, /# Show recent workflow runs/);
     assert.match(parsed.issue_body, /Target team: Civora/);
     assert.match(parsed.issue_body, /Target project: Public Beta/);
-    assert.match(parsed.issue_body, /Suggested labels: Web/);
-    assert.deepEqual(parsed.metadata.labels_to_apply, ["Feature", "Web", "llm-refine"]);
+    assert.match(parsed.issue_body, /Suggested labels: Web, Integration/);
+    assert.deepEqual(parsed.metadata.labels_to_apply, ["Feature", "Web", "Integration", "llm-refine"]);
     assert.equal(parsed.metadata.target_team, "Civora");
     assert.equal(parsed.metadata.target_project, "Public Beta");
   } finally {
