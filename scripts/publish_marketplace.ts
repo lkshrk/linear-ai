@@ -145,7 +145,7 @@ async function main(argv: string[]): Promise<number> {
     await run(checkoutDir, "git", ["config", "user.name", "github-actions[bot]"]);
     await run(checkoutDir, "git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"]);
     await run(checkoutDir, "git", ["add", "."]);
-    await run(checkoutDir, "git", ["commit", "-m", `chore(CIV-999): bump linear-ai to ${release.tag}`]);
+    await run(checkoutDir, "git", ["commit", "-m", `chore: bump linear-ai to ${release.tag}`]);
     if (args.push) await run(checkoutDir, "git", ["push", "origin", "HEAD"]);
 
     process.stdout.write(`ok marketplace bump ${release.tag}\n`);

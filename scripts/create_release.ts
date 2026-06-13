@@ -158,7 +158,7 @@ async function main(argv: string[]): Promise<number> {
 
     if (!args.noCommit) {
       await run(args.repoDir, "git", ["add", "package.json", ".codex-plugin/plugin.json", ".claude-plugin/plugin.json"]);
-      await run(args.repoDir, "git", ["commit", "-m", `chore(CIV-999): release ${tag}`]);
+      await run(args.repoDir, "git", ["commit", "-m", `chore: release ${tag}`]);
       await run(args.repoDir, "git", ["tag", tag]);
       if (args.push) {
         await run(args.repoDir, "git", ["push", "origin", "HEAD"]);
