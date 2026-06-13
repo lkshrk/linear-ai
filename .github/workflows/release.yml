@@ -21,9 +21,6 @@ permissions:
   contents: write
   actions: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   release:
     name: Create GitHub release
@@ -35,7 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
@@ -71,7 +68,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
