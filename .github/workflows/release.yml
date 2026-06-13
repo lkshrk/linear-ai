@@ -107,13 +107,42 @@ jobs:
           \`\`\`
           EOF
 
-      - name: Create GitHub release
+      - name: Verify marketplace update path
+        env:
+          MARKETPLACE_PUSH_TOKEN: ${{ secrets.MARKETPLACE_PUSH_TOKEN }}
         run: |
           set -euo pipefail
-          gh release create "$TAG" \
-            --verify-tag \
-            --title "linear-ai $TAG" \
-            --notes-file release-notes.md
+          if [ -n "$MARKETPLACE_PUSH_TOKEN" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN is configured"
+            exit 0
+          fi
+
+          codex_ref="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.agents/plugins/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .source.ref')"
+          claude_ref="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.claude-plugin/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .source.ref')"
+          claude_version="$(curl -fsSL https://raw.githubusercontent.com/lkshrk/agent-marketplace/main/.claude-plugin/marketplace.json | jq -r '.plugins[] | select(.name == "linear-ai") | .version')"
+          version="${TAG#v}"
+
+          if [ "$codex_ref" = "$TAG" ] && [ "$claude_ref" = "$TAG" ] && [ "$claude_version" = "$version" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN is missing, but marketplace is already current for $TAG"
+            exit 0
+          fi
+
+          echo "MARKETPLACE_PUSH_TOKEN secret is required to update lkshrk/agent-marketplace" >&2
+          exit 1
+
+      - name: Create or update GitHub release
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "linear-ai $TAG" \
+              --notes-file release-notes.md
+          else
+            gh release create "$TAG" \
+              --verify-tag \
+              --title "linear-ai $TAG" \
+              --notes-file release-notes.md
+          fi
 
       - name: Bump marketplace linear-ai version
         env:
@@ -121,8 +150,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$MARKETPLACE_PUSH_TOKEN" ]; then
-            echo "MARKETPLACE_PUSH_TOKEN secret is required to update lkshrk/agent-marketplace" >&2
-            exit 1
+            echo "MARKETPLACE_PUSH_TOKEN is missing; marketplace was verified current earlier"
+            exit 0
           fi
           bun scripts/publish_marketplace.ts \
             --version "$TAG" \
