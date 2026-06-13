@@ -78,6 +78,11 @@ jobs:
       - name: Install plugin marketplace CLIs
         run: npm install -g @openai/codex @anthropic-ai/claude-code
 
+      - name: Verify release version sync
+        run: |
+          make marketplace-generate
+          bun scripts/verify_release.ts --tag "$TAG" --marketplace-dir dist/marketplace
+
       - name: Run release package smoke checks
         run: |
           make install-smoke

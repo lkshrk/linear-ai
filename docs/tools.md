@@ -75,6 +75,13 @@ make marketplace-smoke
 bun scripts/marketplace_smoke.ts
 ```
 
+Check release version sync across package metadata, plugin manifests, and generated marketplace refs:
+
+```sh
+make release-check
+bun scripts/verify_release.ts --tag v<package-version> --marketplace-dir dist/marketplace
+```
+
 ## Linear MCP
 
 Linear MCP setup is documented in `docs/linear-mcp.md`.

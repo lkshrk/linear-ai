@@ -81,8 +81,15 @@ async function main(): Promise<number> {
   }
 
   const packageJson = await readJson("package.json");
+  if (codexManifest.version !== packageJson.version) {
+    errors.push(".codex-plugin/plugin.json version must match package.json version");
+  }
+  if (claudeManifest.version !== packageJson.version) {
+    errors.push(".claude-plugin/plugin.json version must match package.json version");
+  }
+
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:smoke", "marketplace:smoke:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
+  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:smoke", "marketplace:smoke:node", "release:check", "release:check:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
   }
 

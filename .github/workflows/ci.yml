@@ -57,6 +57,9 @@ jobs:
       - name: Run plugin marketplace smoke checks
         run: make marketplace-smoke
 
+      - name: Verify release version sync
+        run: make release-check
+
       - name: Validate Node runner compatibility
         run: npm run validate:node
 
@@ -71,6 +74,9 @@ jobs:
 
       - name: Run Node marketplace smoke compatibility
         run: npm run marketplace:smoke:node
+
+      - name: Run Node release sync compatibility
+        run: npm run release:check:node
 
   dispatch-release:
     name: Dispatch release for release tag
