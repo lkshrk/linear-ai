@@ -272,7 +272,7 @@ workspace_cleanup:
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /verification must contain at least one item/);
+    assert.match(result.stderr, /verification.*fewer than 1 items/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -311,7 +311,7 @@ workspace_cleanup:
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /verification\[0\]\.result is invalid/);
+    assert.match(result.stderr, /verification\/0\/result.*allowed values/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -345,7 +345,7 @@ updated_by: linear-ai
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /tasks\[0\]\.state is invalid/);
+    assert.match(result.stderr, /tasks\/0\/state.*allowed values/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -397,9 +397,32 @@ test("validator rejects dashboard task without repair evidence", async () => {
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /tasks\[0\]\.last_checked is required/);
+    assert.match(result.stderr, /tasks\/0\/last_checked.*fewer than 1 characters/);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects schema fields not declared in marked comment schemas", async () => {
+  const badStatus = await withTempFile("linear-ai-status-extra-field-", ".md", markedStatus(reviewReadyStatusYaml(
+    `unexpected_schema_drift: true
+`
+  )));
+  const badDashboard = await withTempFile("linear-ai-dashboard-extra-field-", ".md", markedDashboard(reviewReadyDashboardYaml(
+    `unexpected_schema_drift: true
+`
+  )));
+  try {
+    const statusResult = await runBun("validate_marked_comments.ts", [badStatus.file]);
+    const dashboardResult = await runBun("validate_marked_comments.ts", [badDashboard.file]);
+
+    assert.notEqual(statusResult.code, 0);
+    assert.match(statusResult.stderr, /must NOT have additional properties|unexpected_schema_drift/);
+    assert.notEqual(dashboardResult.code, 0);
+    assert.match(dashboardResult.stderr, /must NOT have additional properties|unexpected_schema_drift/);
+  } finally {
+    await rm(badStatus.dir, { recursive: true, force: true });
+    await rm(badDashboard.dir, { recursive: true, force: true });
   }
 });
 
@@ -958,7 +981,7 @@ do_not_assume:
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /implementation_checklist\[0\]\.repository is required/);
+    assert.match(result.stderr, /implementation_checklist\/0.*required property 'repository'/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

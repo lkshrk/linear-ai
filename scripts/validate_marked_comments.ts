@@ -1,4 +1,7 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import Ajv2020, { type ValidateFunction } from "ajv/dist/2020";
 import YAML from "yaml";
 
 const PLAN_START = /<!--\s*linear-ai:plan v1\b.*?-->/s;
@@ -20,6 +23,7 @@ const DASHBOARD_TASK_SYMBOLS: Record<string, string> = {
   skipped: "-",
   deferred: "…"
 };
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 class ValidationError extends Error {}
 
@@ -27,6 +31,16 @@ type Mapping = Record<string, unknown>;
 type ValidatorOptions = {
   knownLabels?: Set<string>;
 };
+type SchemaKind = "plan" | "status" | "dashboard";
+
+const SCHEMA_FILES: Record<SchemaKind, string> = {
+  plan: "linear-ai.plan.v1.schema.yaml",
+  status: "linear-ai.status.v1.schema.yaml",
+  dashboard: "linear-ai.dashboard.v1.schema.yaml"
+};
+
+const ajv = new Ajv2020({ allErrors: true });
+const schemaValidators = new Map<SchemaKind, ValidateFunction>();
 
 function isMapping(value: unknown): value is Mapping {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -59,6 +73,31 @@ function loadYaml(yamlText: string, kind: string): Mapping {
     if (error instanceof ValidationError) throw error;
     throw new ValidationError(`invalid ${kind} YAML: ${(error as Error).message}`);
   }
+}
+
+function formatSchemaErrors(validate: ValidateFunction, kind: SchemaKind): string {
+  const errors = validate.errors ?? [];
+  return errors.map((error) => {
+    const location = error.instancePath || "/";
+    const property = typeof error.params.additionalProperty === "string" ? ` ${error.params.additionalProperty}` : "";
+    return `${kind}${location}${property} ${error.message ?? "is invalid"}`;
+  }).join("; ");
+}
+
+async function schemaValidator(kind: SchemaKind): Promise<ValidateFunction> {
+  const cached = schemaValidators.get(kind);
+  if (cached) return cached;
+
+  const schemaPath = path.join(ROOT, "schemas", SCHEMA_FILES[kind]);
+  const schema = loadYaml(await readFile(schemaPath, "utf8"), `${kind} schema`);
+  const validate = ajv.compile(schema);
+  schemaValidators.set(kind, validate);
+  return validate;
+}
+
+async function validateSchema(data: Mapping, kind: SchemaKind): Promise<void> {
+  const validate = await schemaValidator(kind);
+  if (!validate(data)) throw new ValidationError(formatSchemaErrors(validate, kind));
 }
 
 function requireFields(data: Mapping, fields: string[]): void {
@@ -285,10 +324,11 @@ function validateDashboard(data: Mapping, latestReadyPlan?: Mapping): void {
   if (typeof data.updated_by !== "string" || data.updated_by.length === 0) throw new ValidationError("updated_by is required");
 }
 
-function latestReadyPlan(content: string, options: ValidatorOptions = {}): Mapping | undefined {
+async function latestReadyPlan(content: string, options: ValidatorOptions = {}): Promise<Mapping | undefined> {
   let latest: Mapping | undefined;
   for (const match of content.matchAll(PLAN_BLOCK)) {
     const data = loadYaml(extractYamlFromMarkedBlock(match[0], "plan"), "plan");
+    await validateSchema(data, "plan");
     validatePlan(data, options);
     if (data.plan_status === "ready") latest = data;
   }
@@ -302,19 +342,25 @@ async function validateFile(path: string, options: ValidatorOptions = {}): Promi
 
   if (dashboardMatches.length === 1) {
     const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
-    validateDashboard(loadYaml(yaml, "dashboard"), latestReadyPlan(content, options));
+    const data = loadYaml(yaml, "dashboard");
+    await validateSchema(data, "dashboard");
+    validateDashboard(data, await latestReadyPlan(content, options));
     return `ok ${path} dashboard`;
   }
 
   if (PLAN_START.test(content)) {
     const yaml = extractBlock(content, PLAN_START, PLAN_END, "plan");
-    validatePlan(loadYaml(yaml, "plan"), options);
+    const data = loadYaml(yaml, "plan");
+    await validateSchema(data, "plan");
+    validatePlan(data, options);
     return `ok ${path} plan`;
   }
 
   if (STATUS_START.test(content)) {
     const yaml = extractBlock(content, STATUS_START, STATUS_END, "status");
-    validateStatus(loadYaml(yaml, "status"), options);
+    const data = loadYaml(yaml, "status");
+    await validateSchema(data, "status");
+    validateStatus(data, options);
     return `ok ${path} status`;
   }
 

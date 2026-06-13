@@ -36,6 +36,7 @@
     "skills:smoke:node": "tsx scripts/skills_smoke.ts"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
