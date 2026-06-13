@@ -20,6 +20,38 @@ It provides agent skills, Markdown comment schemas, and local validators for thi
 
 ## Quick Start
 
+Install the released skills into Codex and Claude Code:
+
+```sh
+npx skills add lkshrk/linear-ai --agent codex --agent claude-code
+```
+
+Install one skill only:
+
+```sh
+npx skills add lkshrk/linear-ai --skill linear-deliver-feature --agent codex
+```
+
+List available skills before installing:
+
+```sh
+npx skills add lkshrk/linear-ai --list
+```
+
+Configure the Linear MCP server when the agent should read or update Linear:
+
+```sh
+codex mcp add linear --url https://mcp.linear.app/mcp
+codex mcp login linear
+```
+
+For local development, clone the repo and install dependencies:
+
+```sh
+git clone git@github.com:lkshrk/linear-ai.git
+cd linear-ai
+```
+
 Install dependencies with the JavaScript package manager available in your environment:
 
 ```sh
@@ -39,13 +71,7 @@ make verify-handoff
 make skills-smoke
 ```
 
-Use the skills directly from this checkout, or install them into a compatible agent runtime such as Codex or Claude Code. The workflow expects the Linear MCP server when the agent needs to read or update Linear.
-
-Install from a published GitHub repository with:
-
-```sh
-npx skills add lkshrk/linear-ai --agent codex --agent claude-code
-```
+You can also use the skills directly from this checkout without installing them globally.
 
 ## Typical Usage
 
