@@ -7,22 +7,43 @@ description: "Run the full Linear AI workflow for one feature or bug: create iss
 
 Use this as the combined lifecycle controller for one Linear issue. Run the narrower skills as phase implementations, but keep the state transitions here.
 
+Start by running `linear-status` against the actual Linear issue. Use the detected labels, status, newest marked comments, and dashboard comment to resume from the detected phase. Do not start from memory or from the user's last chat message when Linear evidence is available.
+
 ## Lifecycle State Machine
 
-1. `capture-metadata` - query live Linear teams, projects, and labels, then normalize them with `scripts/linear_metadata.ts capture`.
-2. `create-issue` - run `linear-create-issue` to create or update the issue with target team, target project, component tag, type label, and one LLM state label.
-3. `refine-plan` - run `linear-refine` until the issue has a marked plan comment with `plan_status: ready` or an explicit blocked/accepted-unknown state.
-4. `implement` - run `linear-implement` only after the ready plan exists; make code changes, run verification, and post a marked status comment.
-5. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan and status comments before claiming the workflow is ready for review.
-6. `review-handoff` - confirm PRs or patches are ready, verification evidence is present, and the issue has exactly one workflow state label: `llm-review` when review is ready, or `llm-blocked` when not.
-7. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
+1. `detect-current-state` - run `linear-status` to identify current phase, missing evidence, state disagreement, and recommended next skill.
+2. `capture-metadata` - query live Linear teams, projects, and labels, then normalize them with `scripts/linear_metadata.ts capture`.
+3. `create-issue` - run `linear-create-issue` to create or update the issue with target team, target project, component tag, type label, and one LLM state label.
+4. `refine-plan` - run `linear-refine` until the issue has a marked plan comment with `plan_status: ready` or an explicit blocked/accepted-unknown state.
+5. `implement` - run `linear-implement` only after the ready plan exists; make code changes, run verification, update the one dashboard comment, and post a marked status comment.
+6. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan, status, and dashboard comments before claiming the workflow is ready for review.
+7. `review-handoff` - confirm PRs or patches are ready, verification evidence is present, and the issue has exactly one workflow state label: `llm-review` when review is ready, or `llm-blocked` when not.
+8. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
 
 Do not advance to the next lifecycle state when the current state lacks required evidence. Stop at the current state and record the blocker.
+
+## Step Completion Handoff
+
+After each lifecycle state completes, report what changed, the evidence that the current state is satisfied, current Linear labels/status, any marked comment revision, and the recommended next step.
+
+Ask if there is anything else to add for this lifecycle state. If yes, continue the current step and update the relevant issue, plan, code, verification, or status comment. If no, recommend moving to the next workflow step and name the next lifecycle state.
+
+Use this response shape:
+
+- Current phase
+- What changed
+- Evidence
+- Missing evidence
+- Open blocker
+- Recommended next step
+- Recommended next skill
+- Question: Is there anything else to add before moving on?
 
 ## Linear MCP Contract
 
 Use Linear MCP through each phase skill:
 
+- `linear-status` uses `get_issue` and `list_comments`.
 - `linear-create-issue` uses `list_teams`, `list_projects`, `list_issue_labels`, and `save_issue`.
 - `linear-refine` uses `get_issue`, `list_comments`, `save_comment`, and `save_issue`.
 - `linear-implement` uses `get_issue`, `list_comments`, `save_comment`, and `save_issue`.
@@ -33,7 +54,7 @@ Do not skip validation between phases. Capture live metadata with:
 scripts/linear_metadata.ts capture --teams linear-teams.json --projects linear-projects.json --labels linear-labels.json
 ```
 
-Validate marked comments with:
+Validate marked comments, including the `linear-ai.dashboard.v1` one dashboard comment with emoji task list, with:
 
 ```sh
 scripts/validate_marked_comments.ts <comment-file>

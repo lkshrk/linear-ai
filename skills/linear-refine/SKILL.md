@@ -15,6 +15,16 @@ Use the repository root as the workflow source. Read and follow:
 
 Ask one question at a time. Run the required local review/grill pass before marking a plan ready.
 
+## Grill Continuation
+
+Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.
+
+Ask one question at a time. If a question can be answered by exploring the issue, comments, linked docs, or codebase, explore those sources instead of asking.
+
+After each human answer, restate the accepted decision, update the plan draft or Linear comment when available, and ask if there is anything else to add for that branch. If yes, continue the current step with the next focused question. If no and the branch is resolved, move to the next branch or recommend moving to the next workflow step.
+
+Do not mark `plan_status: ready` until grill continuation has completed for every material branch or the human has explicitly accepted the remaining unknowns.
+
 ## Linear MCP Contract
 
 Use these Linear MCP tools when available:
@@ -39,5 +49,22 @@ scripts/validate_marked_comments.ts --metadata <metadata.json> <plan-comment-fil
 Use the local JavaScript package manager or runtime available to the agent: Bun can run the `.ts` scripts directly; Node/npm/pnpm/yarn environments should run them through a TypeScript runner such as `tsx`.
 
 If Linear MCP write tools are unavailable, do not claim labels, status, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact comment body and label/status changes.
+
+## Step Completion Handoff
+
+When refinement completes a draft, blocked, or ready plan revision, report what changed, the validation/write evidence, current Linear labels/status, and the recommended next step.
+
+Ask if there is anything else to add for this refinement step. If yes, continue the current step and update the plan. If no, recommend moving to the next workflow step, normally `linear-implement` when `llm-ready` is present or another grill branch when ambiguity remains.
+
+Use this response shape:
+
+- Current phase
+- What changed
+- Evidence
+- Missing evidence
+- Open blocker
+- Recommended next step
+- Recommended next skill
+- Question: Is there anything else to add before moving on?
 
 Stop when the newest marked plan comment is `plan_status: ready`, labels/status mutations are applied or emitted, and no unaccepted blocking questions remain.

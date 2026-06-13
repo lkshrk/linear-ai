@@ -32,6 +32,16 @@ The grill pass should be firm. Its job is to find ambiguity before implementatio
 
 The grill pass is mandatory. Use `grill-me` or `grill-with-docs` when available. If those skills are unavailable, run the Mandatory Local Grill Pass in [agent required passes](agent-required-passes.md). Do not mark a plan ready until this pass has completed.
 
+## Grill Continuation
+
+Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.
+
+Ask one question at a time. If a question can be answered by exploring the issue, comments, linked docs, or codebase, explore those sources instead of asking.
+
+After each human answer, restate the accepted decision, record it in the plan draft, and ask if there is anything else to add for that branch. If there is more to add, continue the current step with the next focused question. If the branch is resolved, explicitly move to the next branch or recommend moving to the next workflow step.
+
+Do not mark a plan ready until grill continuation has completed for every material branch or the human has explicitly accepted the remaining unknowns.
+
 The questioner does not need to produce the full repo-local TDD task plan. That belongs to the implementer once it is running in the target repository workspace with current code context.
 
 ## Context Reading

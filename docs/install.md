@@ -34,6 +34,24 @@ List discovered skills without installing:
 npx skills add . --list
 ```
 
+## No-install repo-local usage
+
+You can open Codex in this directory and ask it to use the repo-local skills without installing them globally. This works best when the agent can read this checkout and has the Linear MCP server configured.
+
+Example prompts:
+
+```text
+Use the repo-local linear-status skill to inspect HCL-123 and tell me the current phase.
+```
+
+```text
+Use the repo-local linear-deliver-feature skill to deliver HCL-123. Start by checking actual Linear state.
+```
+
+```text
+Use the repo-local linear-doctor skill to check whether my Linear labels, projects, and teams are ready.
+```
+
 ## Claude Code Plugin Compatibility
 
 Claude Code compatibility is provided by:
@@ -42,12 +60,14 @@ Claude Code compatibility is provided by:
 .claude-plugin/plugin.json
 ```
 
-That manifest declares the four skill paths explicitly so tools that understand Claude Code plugin manifests can discover the same canonical skill files:
+That manifest declares the skill paths explicitly so tools that understand Claude Code plugin manifests can discover the same canonical skill files:
 
 - `linear-create-issue`
 - `linear-refine`
 - `linear-implement`
 - `linear-deliver-feature`
+- `linear-status`
+- `linear-doctor`
 
 The project does not duplicate skill bodies under `.claude/skills/`; use the skills CLI to install or symlink them into Claude Code.
 

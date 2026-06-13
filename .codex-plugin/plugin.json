@@ -1,7 +1,7 @@
 {
   "name": "linear-ai",
   "version": "0.1.0",
-  "description": "Linear issue intake, refinement, implementation, and review workflows for AI-assisted delivery.",
+  "description": "Linear issue intake, setup checks, status detection, refinement, implementation, and review workflows for AI-assisted delivery.",
   "author": {
     "name": "Linear AI"
   },
@@ -10,13 +10,15 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Linear AI",
-    "shortDescription": "Create, refine, implement, and review Linear issues.",
-    "longDescription": "Workflow skills and local validators for Markdown-first Linear issue intake, implementation planning, agent execution, and review handoff.",
+    "shortDescription": "Create, inspect, refine, implement, and review Linear issues.",
+    "longDescription": "Workflow skills and local validators for Markdown-first Linear issue setup checks, status detection, intake, implementation planning, agent execution, dashboard progress, and review handoff.",
     "developerName": "Linear AI",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
     "defaultPrompt": [
       "Create a Linear issue from this rough report",
+      "What is the current phase of this Linear issue?",
+      "Check whether my Linear workspace is ready",
       "Refine this Linear issue into a plan",
       "Deliver this Linear feature end to end"
     ]

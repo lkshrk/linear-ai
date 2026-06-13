@@ -21,6 +21,14 @@ Create these AI workflow labels:
 - `llm-review`
 - `llm-split`
 
+Create these Superpowers phase labels:
+
+- `sp-clarify`
+- `sp-plan`
+- `sp-implement`
+- `sp-review`
+- `sp-verify`
+
 Create or reuse these product labels:
 
 - `bug`

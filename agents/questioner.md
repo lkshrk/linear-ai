@@ -33,6 +33,16 @@ Read and follow:
 - If Linear MCP write tools are available and the plan is ready, create/update the marked plan comment, add `llm-ready`, remove all other `llm-*` states, and update status when a matching ready/Todo status exists.
 - If Linear MCP write tools are not available, emit `REQUIRED_LINEAR_MUTATIONS`.
 
+## Grill Continuation
+
+Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.
+
+Ask one question at a time. If a question can be answered by exploring the issue, comments, linked docs, or codebase, explore those sources instead of asking.
+
+After each human answer, restate the accepted decision, update the plan draft or Linear comment when available, and ask if there is anything else to add for that branch. If yes, continue the current step with the next focused question. If no and the branch is resolved, move to the next branch or recommend moving to the next workflow step.
+
+Do not mark `plan_status: ready` until grill continuation has completed for every material branch or the human has explicitly accepted the remaining unknowns.
+
 ## Output
 
 Write a marked plan comment using `templates/linear-plan-comment.md`.

@@ -25,6 +25,8 @@ The repo is also a Codex plugin scaffold. The primary skill surfaces are:
 - `linear-refine` - clarify an issue into a ready marked implementation plan.
 - `linear-implement` - execute a ready plan, verify, PR, and post status.
 - `linear-deliver-feature` - run create/refine/implement/review as one end-to-end workflow.
+- `linear-status` - inspect a Linear issue and report current phase, missing evidence, and next skill.
+- `linear-doctor` - check Linear teams, projects, labels, and setup readiness.
 
 ## Quick Start
 
@@ -44,7 +46,8 @@ Use [Install](docs/install.md), [Agent Usage](docs/agent-usage.md), and [Manual 
 5. A future orchestrator picks up `llm-ready`, creates or selects an implementation workspace, and starts an implementer agent.
 6. The implementer completes every unambiguous task, opens or updates a draft PR, and posts batched questions when blocked.
 7. The questioner resumes on those questions, updates the plan, and the implementer continues.
-8. When the PR is complete and verified, it is marked ready for human review.
+8. Agents use one `linear-ai.dashboard.v1` dashboard comment for Superpowers task progress instead of creating comment spam.
+9. When the PR is complete and verified, it is marked ready for human review.
 
 ## Documents
 
@@ -73,8 +76,11 @@ Use [Install](docs/install.md), [Agent Usage](docs/agent-usage.md), and [Manual 
 - [Feature Issue Template](templates/linear-feature-issue.md) - feature issue fields and formatting.
 - [Plan Comment Template](templates/linear-plan-comment.md) - marked plan comment format.
 - [Status Comment Template](templates/linear-status-comment.md) - implementation status and question format.
+- [Dashboard Comment Template](templates/linear-dashboard-comment.md) - one-comment progress dashboard format.
 - [Plan Comment Schema](schemas/linear-ai.plan.v1.schema.yaml) - machine-readable plan YAML schema.
 - [Status Comment Schema](schemas/linear-ai.status.v1.schema.yaml) - machine-readable status YAML schema.
+- [Dashboard Comment Schema](schemas/linear-ai.dashboard.v1.schema.yaml) - machine-readable dashboard YAML schema.
+- [Superpowers Linear Persistence](docs/superpowers-linear-persistence.md) - dashboard and `sp-*` persistence contract.
 - [Example Bug Issue](examples/bug-issue.md) - filled bug issue example.
 - [Example Feature Issue](examples/feature-issue.md) - filled feature issue example.
 - [Example Bug Input](examples/bug-input.yaml) - structured input for the issue renderer.
@@ -83,6 +89,7 @@ Use [Install](docs/install.md), [Agent Usage](docs/agent-usage.md), and [Manual 
 - [Example Linear Metadata](examples/linear-metadata.json) - example snapshot shape for local metadata validation.
 - [Example Plan Comment](examples/plan-comment.md) - filled marked ready-plan comment.
 - [Example Status Comment](examples/status-comment.md) - filled marked implementation status comment.
+- [Example Dashboard Comment](examples/dashboard-comment.md) - filled marked dashboard comment.
 
 ## Authority Model
 

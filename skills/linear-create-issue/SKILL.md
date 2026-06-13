@@ -44,4 +44,21 @@ Use `scripts/linear_metadata.ts validate ...` to check the captured metadata sna
 
 If Linear MCP write tools are unavailable, do not claim the issue was created or updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact target team, labels, priority, and issue body the human should apply.
 
+## Step Completion Handoff
+
+When issue intake completes, report what changed, the Linear issue URL or `REQUIRED_LINEAR_MUTATIONS`, selected team/project/component labels, current Linear labels/status, and the recommended next step.
+
+Ask if there is anything else to add for this intake step. If yes, continue the current step and update the issue draft or Linear issue. If no, recommend moving to the next workflow step, normally `linear-refine` when `llm-refine` is present.
+
+Use this response shape:
+
+- Current phase
+- What changed
+- Evidence
+- Missing evidence
+- Open blocker
+- Recommended next step
+- Recommended next skill
+- Question: Is there anything else to add before moving on?
+
 Stop when the issue body is Linear-ready and the final metadata is explicit: target team, target project if applicable, component tag, labels to apply/remove, priority if provided, and whether `llm-refine` is needed.
