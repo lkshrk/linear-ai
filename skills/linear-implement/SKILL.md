@@ -18,7 +18,9 @@ Use the repository root as the workflow source. Read and follow:
 
 Start from the newest valid marked plan comment. Do not invent missing product behavior. If blocked, post batched questions in a marked status comment and apply or emit the correct Linear mutations.
 
-Maintain one dashboard comment with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with emoji state markers after each task state change. Inspect the actual code/worktree state before marking a task done.
+No implementation or code changes before the Superpowers task list is mirrored into the Linear dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
+
+Maintain one dashboard comment with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with CLI-style state symbols, stable ready-plan task IDs, and `last_checked` repair evidence after each top-level task state change. Inspect the actual code/worktree state before marking a task done.
 
 ## Parallel Execution
 

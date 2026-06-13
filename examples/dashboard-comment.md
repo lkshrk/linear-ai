@@ -4,6 +4,7 @@
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: implement
 llm_state: llm-active
 sp_phases:
@@ -13,19 +14,22 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add failing dashboard contract tests
     evidence: test/agent_contract.test.ts
+    last_checked: bun test test/agent_contract.test.ts
   - id: T2
-    state: in_progress
-    emoji: "🔄"
+    state: active
+    symbol: "●"
     title: Implement dashboard template and schema
     evidence: templates/linear-dashboard-comment.md
+    last_checked: repo inspection
   - id: T3
     state: todo
-    emoji: "⬜"
+    symbol: "□"
     title: Run full verification
     evidence: ""
+    last_checked: latest ready plan
 blockers: []
 next_step: Finish implementation and run verification.
 updated_by: linear-ai
@@ -35,9 +39,9 @@ updated_by: linear-ai
 
 Current phase: implement
 
-- ✅ `T1` Add failing dashboard contract tests
-- 🔄 `T2` Implement dashboard template and schema
-- ⬜ `T3` Run full verification
+- ✓ `T1` done: Add failing dashboard contract tests
+- ● `T2` active: Implement dashboard template and schema
+- □ `T3` todo: Run full verification
 
 ## Blockers
 

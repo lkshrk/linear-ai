@@ -133,7 +133,7 @@ The validator checks:
 - fenced YAML parseability
 - required schema fields
 - valid `plan_status` and `implementation_status`
-- valid dashboard task states and emoji markers
+- valid dashboard task states, CLI-style symbols, and `last_checked` repair evidence
 - known Linear labels when `--metadata` is provided
 - ready plans do not contain unresolved open questions unless accepted
 - status comments contain verification entries

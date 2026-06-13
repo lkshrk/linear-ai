@@ -97,6 +97,7 @@ function reviewReadyDashboardYaml(overrides: string = ""): string {
   const base = YAML.parse(`schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: review-handoff
 llm_state: llm-review
 sp_phases:
@@ -106,9 +107,10 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: "bun test"
 blockers: []
 next_step: Review PR.
 updated_by: linear-ai
@@ -140,6 +142,45 @@ function markedDashboard(yaml: string): string {
 \`\`\`yaml
 ${yaml}\`\`\`
 <!-- /linear-ai:dashboard -->
+`;
+}
+
+function markedReadyPlan(ids: string[] = ["T1"], revision = 1): string {
+  const items = ids.map((id) => `  - id: ${id}
+    repository: web
+    task: Task ${id}.
+    status: todo`).join("\n");
+  return `<!-- linear-ai:plan v1 issue=CIV-999 rev=${revision} -->
+\`\`\`yaml
+schema: linear-ai.plan.v1
+issue_id: CIV-999
+revision: ${revision}
+plan_status: ready
+source_issue_url: https://linear.app/civora/issue/CIV-999/example
+parent_issue_id:
+target_repositories:
+  - web
+labels_to_apply:
+  - llm-ready
+labels_to_remove:
+  - llm-refine
+split_recommendation:
+  recommended: false
+  reason:
+accepted_unknowns: []
+open_questions: []
+implementation_checklist:
+${items}
+acceptance_criteria:
+  - id: A1
+    criterion: It works.
+verification:
+  - id: V1
+    command_or_check: Run tests.
+do_not_assume:
+  - Do not guess.
+\`\`\`
+<!-- /linear-ai:plan -->
 `;
 }
 
@@ -276,22 +317,24 @@ workspace_cleanup:
   }
 });
 
-test("validator rejects invalid dashboard task emoji", async () => {
+test("validator rejects invalid dashboard task state", async () => {
   const { dir, file } = await withTempFile("linear-ai-dashboard-", ".md", `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
 \`\`\`yaml
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: implement
 llm_state: llm-active
 sp_phases:
   - sp-plan
 tasks:
   - id: T1
-    state: done
-    emoji: "[done]"
-    title: Use invalid emoji marker.
+    state: in_progress
+    symbol: "●"
+    title: Use invalid task state.
     evidence: test
+    last_checked: test
 blockers: []
 next_step: Fix the marker.
 updated_by: linear-ai
@@ -302,7 +345,59 @@ updated_by: linear-ai
     const result = await runBun("validate_marked_comments.ts", [file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /tasks\[0\]\.emoji is invalid/);
+    assert.match(result.stderr, /tasks\[0\]\.state is invalid/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects duplicate dashboard comments", async () => {
+  const dashboard = markedDashboard(reviewReadyDashboardYaml());
+  const { dir, file } = await withTempFile("linear-ai-dashboard-duplicate-", ".md", `${dashboard}\n${dashboard}`);
+  try {
+    const result = await runBun("validate_marked_comments.ts", [file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /multiple dashboard comments found/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects dashboard drift from latest ready plan revision", async () => {
+  const dashboard = markedDashboard(reviewReadyDashboardYaml("plan_revision: 1\n"));
+  const { dir, file } = await withTempFile("linear-ai-dashboard-stale-plan-", ".md", `${markedReadyPlan(["T1"], 2)}\n${dashboard}`);
+  try {
+    const result = await runBun("validate_marked_comments.ts", [file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard plan_revision must match latest ready plan revision 2/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects dashboard task IDs outside latest ready plan", async () => {
+  const dashboard = markedDashboard(reviewReadyDashboardYaml("tasks:\n  - id: T2\n    state: todo\n    symbol: \"□\"\n    title: Unknown task\n    evidence: \"\"\n    last_checked: \"latest ready plan\"\n"));
+  const { dir, file } = await withTempFile("linear-ai-dashboard-task-ids-", ".md", `${markedReadyPlan(["T1"], 1)}\n${dashboard}`);
+  try {
+    const result = await runBun("validate_marked_comments.ts", [file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard task id T2 is not in latest ready plan/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects dashboard task without repair evidence", async () => {
+  const dashboard = markedDashboard(reviewReadyDashboardYaml("tasks:\n  - id: T1\n    state: active\n    symbol: \"●\"\n    title: Missing repair evidence\n    evidence: \"\"\n    last_checked: \"\"\n"));
+  const { dir, file } = await withTempFile("linear-ai-dashboard-repair-evidence-", ".md", dashboard);
+  try {
+    const result = await runBun("validate_marked_comments.ts", [file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /tasks\[0\]\.last_checked is required/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -349,6 +444,7 @@ workspace_cleanup:
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: review-handoff
 llm_state: llm-review
 sp_phases:
@@ -358,9 +454,10 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: scripts/verify_handoff.ts
 blockers: []
 next_step: Review PR.
 updated_by: linear-ai
@@ -427,6 +524,7 @@ workspace_cleanup:
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: review-handoff
 llm_state: llm-review
 sp_phases:
@@ -434,9 +532,10 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: scripts/verify_handoff.ts
 blockers: []
 next_step: Review PR.
 updated_by: linear-ai
@@ -499,6 +598,7 @@ workspace_cleanup:
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: review-handoff
 llm_state: llm-review
 sp_phases:
@@ -506,9 +606,10 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: scripts/verify_handoff.ts
 blockers: []
 next_step: Review PR.
 updated_by: linear-ai
@@ -649,17 +750,18 @@ test("handoff verifier rejects unfinished dashboard task", async () => {
   const dashboard = await withTempFile("linear-ai-dashboard-task-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml(
     `tasks:
   - id: T1
-    state: in_progress
-    emoji: "🔄"
+    state: active
+    symbol: "●"
     title: Add handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: scripts/verify_handoff.ts
 `
   )));
   try {
     const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /dashboard tasks\[0\] must be done with ✅/);
+    assert.match(result.stderr, /dashboard tasks\[0\] must be done with ✓/);
   } finally {
     await rm(status.dir, { recursive: true, force: true });
     await rm(dashboard.dir, { recursive: true, force: true });

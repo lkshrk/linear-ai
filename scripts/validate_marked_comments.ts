@@ -7,8 +7,19 @@ const STATUS_START = /<!--\s*linear-ai:status v1\b.*?-->/s;
 const STATUS_END = /<!--\s*\/linear-ai:status\s*-->/s;
 const DASHBOARD_START = /<!--\s*linear-ai:dashboard v1\b.*?-->/s;
 const DASHBOARD_END = /<!--\s*\/linear-ai:dashboard\s*-->/s;
+const PLAN_BLOCK = /<!--\s*linear-ai:plan v1\b.*?-->.*?<!--\s*\/linear-ai:plan\s*-->/gs;
+const DASHBOARD_BLOCK = /<!--\s*linear-ai:dashboard v1\b.*?-->.*?<!--\s*\/linear-ai:dashboard\s*-->/gs;
 const YAML_BLOCK = /```yaml\n(.*?)```/s;
 const LLM_STATE_LABELS = ["llm-refine", "llm-ready", "llm-active", "llm-blocked", "llm-review", "llm-split"];
+const DASHBOARD_TASK_STATES = ["todo", "active", "blocked", "done", "skipped", "deferred"];
+const DASHBOARD_TASK_SYMBOLS: Record<string, string> = {
+  todo: "□",
+  active: "●",
+  blocked: "■",
+  done: "✓",
+  skipped: "-",
+  deferred: "…"
+};
 
 class ValidationError extends Error {}
 
@@ -28,6 +39,12 @@ function extractBlock(content: string, startMarker: RegExp, endMarker: RegExp, k
   if (!endMatch || endMatch.index == null) throw new ValidationError(`missing ${kind} end marker`);
 
   const block = content.slice(startMatch.index + startMatch[0].length, endMatch.index);
+  const yamlMatch = block.match(YAML_BLOCK);
+  if (!yamlMatch) throw new ValidationError(`missing ${kind} fenced YAML block`);
+  return yamlMatch[1];
+}
+
+function extractYamlFromMarkedBlock(block: string, kind: string): string {
   const yamlMatch = block.match(YAML_BLOCK);
   if (!yamlMatch) throw new ValidationError(`missing ${kind} fenced YAML block`);
   return yamlMatch[1];
@@ -211,11 +228,12 @@ function validateStatus(data: Mapping, options: ValidatorOptions = {}): void {
   requireItemFields(cleanup.kept, "workspace_cleanup.kept", ["path", "branch", "owner", "reason"]);
 }
 
-function validateDashboard(data: Mapping): void {
+function validateDashboard(data: Mapping, latestReadyPlan?: Mapping): void {
   requireFields(data, [
     "schema",
     "issue_id",
     "dashboard_revision",
+    "plan_revision",
     "current_phase",
     "llm_state",
     "sp_phases",
@@ -229,22 +247,64 @@ function validateDashboard(data: Mapping): void {
   if (!Number.isInteger(data.dashboard_revision) || Number(data.dashboard_revision) <= 0) {
     throw new ValidationError("dashboard_revision must be a positive integer");
   }
+  if (!Number.isInteger(data.plan_revision) || Number(data.plan_revision) <= 0) {
+    throw new ValidationError("plan_revision must be a positive integer");
+  }
 
   const spPhases = requireArray(data, "sp_phases");
   for (const [index, phase] of spPhases.entries()) {
     if (typeof phase !== "string" || !phase.startsWith("sp-")) throw new ValidationError(`sp_phases[${index}] must start with sp-`);
   }
 
-  const tasks = requireItemFields(requireArray(data, "tasks", 1), "tasks", ["id", "state", "emoji", "title", "evidence"]);
-  requireItemEnum(tasks, "tasks", "state", ["done", "in_progress", "blocked", "deferred", "todo"]);
-  requireItemEnum(tasks, "tasks", "emoji", ["✅", "🔄", "⏸️", "⬜"]);
+  const tasks = requireItemFields(requireArray(data, "tasks", 1), "tasks", ["id", "state", "symbol", "title", "evidence", "last_checked"]);
+  requireItemEnum(tasks, "tasks", "state", DASHBOARD_TASK_STATES);
+  tasks.forEach((task, index) => {
+    const state = String(task.state);
+    if (task.symbol !== DASHBOARD_TASK_SYMBOLS[state]) throw new ValidationError(`tasks[${index}].symbol is invalid for ${state}`);
+    if (typeof task.last_checked !== "string" || task.last_checked.length === 0) {
+      throw new ValidationError(`tasks[${index}].last_checked is required`);
+    }
+  });
+  const taskIds = tasks.map((task) => String(task.id));
+  if (new Set(taskIds).size !== taskIds.length) throw new ValidationError("dashboard task ids must be unique");
+
+  if (latestReadyPlan) {
+    const revision = latestReadyPlan.revision;
+    if (data.plan_revision !== revision) throw new ValidationError(`dashboard plan_revision must match latest ready plan revision ${revision}`);
+    const planItems = requireMappingItems(requireArray(latestReadyPlan, "implementation_checklist", 1), "implementation_checklist");
+    const planIds = new Set(planItems.map((item) => String(item.id)));
+    for (const taskId of taskIds) {
+      if (!planIds.has(taskId)) throw new ValidationError(`dashboard task id ${taskId} is not in latest ready plan`);
+    }
+    for (const planId of planIds) {
+      if (!taskIds.includes(planId)) throw new ValidationError(`latest ready plan task id ${planId} is missing from dashboard`);
+    }
+  }
   requireArray(data, "blockers");
   if (typeof data.next_step !== "string" || data.next_step.length === 0) throw new ValidationError("next_step is required");
   if (typeof data.updated_by !== "string" || data.updated_by.length === 0) throw new ValidationError("updated_by is required");
 }
 
+function latestReadyPlan(content: string, options: ValidatorOptions = {}): Mapping | undefined {
+  let latest: Mapping | undefined;
+  for (const match of content.matchAll(PLAN_BLOCK)) {
+    const data = loadYaml(extractYamlFromMarkedBlock(match[0], "plan"), "plan");
+    validatePlan(data, options);
+    if (data.plan_status === "ready") latest = data;
+  }
+  return latest;
+}
+
 async function validateFile(path: string, options: ValidatorOptions = {}): Promise<string> {
   const content = await readFile(path, "utf8");
+  const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
+  if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard comments found");
+
+  if (dashboardMatches.length === 1) {
+    const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
+    validateDashboard(loadYaml(yaml, "dashboard"), latestReadyPlan(content, options));
+    return `ok ${path} dashboard`;
+  }
 
   if (PLAN_START.test(content)) {
     const yaml = extractBlock(content, PLAN_START, PLAN_END, "plan");
@@ -256,12 +316,6 @@ async function validateFile(path: string, options: ValidatorOptions = {}): Promi
     const yaml = extractBlock(content, STATUS_START, STATUS_END, "status");
     validateStatus(loadYaml(yaml, "status"), options);
     return `ok ${path} status`;
-  }
-
-  if (DASHBOARD_START.test(content)) {
-    const yaml = extractBlock(content, DASHBOARD_START, DASHBOARD_END, "dashboard");
-    validateDashboard(loadYaml(yaml, "dashboard"));
-    return `ok ${path} dashboard`;
   }
 
   throw new ValidationError("no linear-ai marked comment found");

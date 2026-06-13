@@ -307,7 +307,32 @@ test("dashboard comment contract supports one updatable progress comment", async
     assert.match(source, /linear-ai\.dashboard\.v1/);
     assert.match(source, /one dashboard comment/i);
     assert.match(source, /task list/i);
-    assert.match(source, /emoji/i);
+    assert.match(source, /symbol/i);
+  }
+});
+
+test("superpowers persistence is a hard gate for implementation progress", async () => {
+  const requiredDocs = [
+    "skills/linear-deliver-feature/SKILL.md",
+    "skills/linear-refine/SKILL.md",
+    "skills/linear-implement/SKILL.md"
+  ];
+  const gateDocs = [
+    "agents/implementer.md",
+    "docs/implementer.md",
+    "skills/linear-implement/SKILL.md"
+  ];
+
+  for (const docPath of requiredDocs) {
+    const doc = await readDoc(docPath);
+    assert.match(doc, /docs\/superpowers-linear-persistence\.md/, `${docPath} must load the canonical persistence contract`);
+  }
+
+  for (const docPath of gateDocs) {
+    const doc = await readDoc(docPath);
+    assert.match(doc, /No implementation or code changes before/i, `${docPath} must contain the dashboard hard gate`);
+    assert.match(doc, /Superpowers task list/i, `${docPath} must name the task-list mirror`);
+    assert.match(doc, /REQUIRED_LINEAR_MUTATIONS/i, `${docPath} must preserve the write-unavailable fallback`);
   }
 });
 

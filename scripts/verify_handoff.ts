@@ -155,8 +155,11 @@ function validateDashboard(dashboard: Mapping, issueId: string): void {
   const tasks = Array.isArray(dashboard.tasks) ? dashboard.tasks : [];
   if (tasks.length === 0) throw new HandoffError("dashboard tasks are required");
   for (const [index, task] of tasks.entries()) {
-    if (!isMapping(task) || task.state !== "done" || task.emoji !== "✅") {
-      throw new HandoffError(`dashboard tasks[${index}] must be done with ✅`);
+    if (!isMapping(task) || task.state !== "done" || task.symbol !== "✓") {
+      throw new HandoffError(`dashboard tasks[${index}] must be done with ✓`);
+    }
+    if (typeof task.last_checked !== "string" || task.last_checked.length === 0) {
+      throw new HandoffError(`dashboard tasks[${index}].last_checked is required`);
     }
   }
   if (stringArray(dashboard.blockers).length > 0) throw new HandoffError("dashboard blockers must be empty");

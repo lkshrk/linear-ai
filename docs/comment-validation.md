@@ -64,7 +64,8 @@ A dashboard comment is valid only when:
 - `issue_id` matches the Linear issue
 - there is one dashboard comment per issue, updated in place when possible
 - `tasks` is present and mirrors the human task list
-- every task has a state and emoji marker
+- every task has a valid state, CLI-style state symbol, and non-empty `last_checked` evidence
+- task IDs match the latest ready plan checklist when the plan is present
 - `next_step` is present
 
 The dashboard is the Superpowers progress surface. Do not create a new ordinary progress comment for every task change.

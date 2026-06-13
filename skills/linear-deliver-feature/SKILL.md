@@ -7,6 +7,8 @@ description: "Run the full Linear AI workflow for one feature or bug: create iss
 
 Use this as the combined lifecycle controller for one Linear issue. Run the narrower skills as phase implementations, but keep the state transitions here.
 
+Read and follow `docs/superpowers-linear-persistence.md` before changing workflow state or code.
+
 Start by running `linear-status` against the actual Linear issue. Use the detected labels, status, newest marked comments, and dashboard comment to resume from the detected phase. Do not start from memory or from the user's last chat message when Linear evidence is available.
 
 ## Lifecycle State Machine
@@ -15,7 +17,7 @@ Start by running `linear-status` against the actual Linear issue. Use the detect
 2. `capture-metadata` - query live Linear teams, projects, and labels, then normalize them with `scripts/linear_metadata.ts capture`.
 3. `create-issue` - run `linear-create-issue` to create or update the issue with target team, target project, component tag, type label, and one LLM state label.
 4. `refine-plan` - run `linear-refine` until the issue has a marked plan comment with `plan_status: ready` or an explicit blocked/accepted-unknown state.
-5. `implement` - run `linear-implement` only after the ready plan exists; make code changes, run verification, update the one dashboard comment, and post a marked status comment.
+5. `implement` - run `linear-implement` only after the ready plan exists and the Superpowers task list is mirrored into the one dashboard comment; make code changes, run verification, update the dashboard comment before moving between top-level tasks, and post marked status comments only for blockers, review readiness, abandoned work, verification failures, handoffs, or write-unavailable mutations.
 6. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan, status, and dashboard comments before claiming the workflow is ready for review.
 7. `review-handoff` - confirm PRs or patches are ready, verification evidence is present, and the issue has exactly one workflow state label: `llm-review` when review is ready, or `llm-blocked` when not.
 8. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
@@ -54,7 +56,7 @@ Do not skip validation between phases. Capture live metadata with:
 scripts/linear_metadata.ts capture --teams linear-teams.json --projects linear-projects.json --labels linear-labels.json
 ```
 
-Validate marked comments, including the `linear-ai.dashboard.v1` one dashboard comment with emoji task list, with:
+Validate marked comments, including the `linear-ai.dashboard.v1` one dashboard comment with CLI-style task list and `symbol` task markers, with:
 
 ```sh
 scripts/validate_marked_comments.ts <comment-file>
