@@ -20,6 +20,8 @@
     "self-review": "bun scripts/self_review.ts",
     "install:smoke": "bun scripts/install_smoke.ts",
     "skills:smoke": "bun scripts/skills_smoke.ts",
+    "hooks:install": "lefthook install",
+    "hooks:run": "lefthook run pre-commit --all-files && lefthook run pre-push --all-files",
     "validate:node": "tsx scripts/validate_marked_comments.ts templates/linear-plan-comment.md templates/linear-status-comment.md templates/linear-dashboard-comment.md examples/plan-comment.md examples/status-comment.md examples/dashboard-comment.md examples/review-ready-status-comment.md examples/review-ready-dashboard-comment.md",
     "metadata:node": "tsx scripts/linear_metadata.ts",
     "intake:node": "tsx scripts/intake_issue.ts",
@@ -37,6 +39,7 @@
     "yaml": "^2.8.1"
   },
   "devDependencies": {
+    "lefthook": "^2.1.9",
     "tsx": "^4.20.6"
   }
 }
