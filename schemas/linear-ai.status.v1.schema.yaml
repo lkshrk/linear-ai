@@ -19,6 +19,9 @@ required:
   - recommended_labels_to_apply
   - recommended_labels_to_remove
   - recommended_status
+  - commits
+  - final_destination
+  - workspace_cleanup
 properties:
   schema:
     const: linear-ai.status.v1
@@ -137,3 +140,56 @@ properties:
     type:
       - string
       - "null"
+  commits:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - subject
+      properties:
+        sha:
+          type: string
+        subject:
+          type: string
+          minLength: 1
+  final_destination:
+    enum:
+      - main
+      - feature_branch_pr
+      - undecided
+  workspace_cleanup:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - kept
+    properties:
+      status:
+        enum:
+          - cleaned
+          - intentionally_kept
+          - pending
+      kept:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - path
+            - branch
+            - owner
+            - reason
+          properties:
+            path:
+              type: string
+              minLength: 1
+            branch:
+              type: string
+              minLength: 1
+            owner:
+              type: string
+              minLength: 1
+            reason:
+              type: string
+              minLength: 1

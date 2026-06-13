@@ -52,6 +52,23 @@ Review handoff can start only when:
 - placeholders are absent or explicitly accepted
 - verification is passing or gaps are explicitly accepted
 
+## Dashboard Comment
+
+A dashboard comment is valid only when:
+
+- it starts with `<!-- linear-ai:dashboard v1 ... -->`
+- it ends with `<!-- /linear-ai:dashboard -->`
+- it contains fenced YAML
+- the YAML matches `schemas/linear-ai.dashboard.v1.schema.yaml`
+- `schema` is `linear-ai.dashboard.v1`
+- `issue_id` matches the Linear issue
+- there is one dashboard comment per issue, updated in place when possible
+- `tasks` is present and mirrors the human task list
+- every task has a state and emoji marker
+- `next_step` is present
+
+The dashboard is the Superpowers progress surface. Do not create a new ordinary progress comment for every task change.
+
 ## Failure Rule
 
 If validation fails, do not infer intent from surrounding prose. Ask for a corrected comment or have the responsible agent regenerate it.

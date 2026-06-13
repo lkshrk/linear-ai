@@ -1,10 +1,10 @@
-.PHONY: test validate render-examples metadata-summary self-review install-smoke
+.PHONY: test validate render-examples metadata-summary verify-handoff self-review install-smoke
 
 test:
 	bun test
 
 validate:
-	bun scripts/validate_marked_comments.ts templates/linear-plan-comment.md templates/linear-status-comment.md examples/plan-comment.md examples/status-comment.md
+	bun scripts/validate_marked_comments.ts templates/linear-plan-comment.md templates/linear-status-comment.md templates/linear-dashboard-comment.md examples/plan-comment.md examples/status-comment.md examples/dashboard-comment.md examples/review-ready-status-comment.md examples/review-ready-dashboard-comment.md
 
 render-examples:
 	bun scripts/render_issue.ts examples/bug-input.yaml
@@ -12,6 +12,9 @@ render-examples:
 
 metadata-summary:
 	bun scripts/linear_metadata.ts summary --metadata examples/linear-metadata.json
+
+verify-handoff:
+	bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
 
 self-review:
 	bun scripts/self_review.ts

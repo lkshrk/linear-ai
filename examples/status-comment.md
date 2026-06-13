@@ -36,6 +36,12 @@ recommended_labels_to_apply:
   - llm-blocked
 recommended_labels_to_remove: []
 recommended_status: Blocked
+commits:
+  - subject: "feat(CIV-123): add recent workflow retrieval"
+final_destination: undecided
+workspace_cleanup:
+  status: pending
+  kept: []
 ```
 
 ## Summary
@@ -67,6 +73,14 @@ None.
 
 - `backend` - https://github.com/civora/backend/pull/123
 - `web` - https://github.com/civora/web/pull/456
+
+## Commits
+
+- `feat(CIV-123): add recent workflow retrieval`
+
+## Workspace Cleanup
+
+Pending.
 
 ## Recommended Next State
 

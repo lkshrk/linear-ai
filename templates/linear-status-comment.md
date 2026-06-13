@@ -41,6 +41,12 @@ recommended_labels_to_remove:
   - llm-review
   - llm-split
 recommended_status: Blocked
+commits:
+  - subject: "fix(TEAM-123): handle blocked workflow state"
+final_destination: undecided # main | feature_branch_pr | undecided
+workspace_cleanup:
+  status: pending # cleaned | intentionally_kept | pending
+  kept: []
 ```
 
 ## Summary
@@ -70,6 +76,14 @@ Short implementation status.
 ## PRs
 
 - `backend` - draft PR link.
+
+## Commits
+
+- `fix(TEAM-123): handle blocked workflow state`
+
+## Workspace Cleanup
+
+Pending.
 
 ## Recommended Next State
 

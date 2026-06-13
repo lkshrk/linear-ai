@@ -58,7 +58,7 @@ async function main(): Promise<number> {
 
   const packageJson = await readJson("package.json");
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "metadata:capture", "self-review:node", "install:smoke:node"]) {
+  for (const script of ["validate:node", "metadata:node", "intake:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
   }
 

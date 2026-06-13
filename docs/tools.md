@@ -32,6 +32,8 @@ Validate plan/status templates and examples:
 make validate
 ```
 
+`make validate` includes the normal examples plus the review-ready handoff examples, so schema drift in the final status/dashboard contract fails locally.
+
 Run local repository self-review checks for stale helper/runtime naming:
 
 ```sh
@@ -67,7 +69,7 @@ Run it only when you are ready to authorize Codex against Linear.
 
 ## Marked Comment Validator
 
-Validate marked Linear plan/status comments:
+Validate marked Linear plan/status/dashboard comments:
 
 ```sh
 bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]
@@ -76,7 +78,7 @@ bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...
 Examples:
 
 ```sh
-bun scripts/validate_marked_comments.ts examples/plan-comment.md examples/status-comment.md
+bun scripts/validate_marked_comments.ts examples/plan-comment.md examples/status-comment.md examples/dashboard-comment.md
 bun scripts/validate_marked_comments.ts --metadata linear-metadata.json copied-plan-comment.md
 ```
 
@@ -86,11 +88,35 @@ The validator checks:
 - fenced YAML parseability
 - required schema fields
 - valid `plan_status` and `implementation_status`
+- valid dashboard task states and emoji markers
 - known Linear labels when `--metadata` is provided
 - ready plans do not contain unresolved open questions unless accepted
 - status comments contain verification entries
 
 It does not call Linear and does not mutate files.
+
+## Review Handoff Gate
+
+Verify that an issue can move to review-ready:
+
+```sh
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
+```
+
+With a commit subject file from Git:
+
+```sh
+git log --format=%s main..HEAD > commits.txt
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --dashboard latest-dashboard.md --commits commits.txt
+```
+
+With repository worktree checks and a custom commit-count limit:
+
+```sh
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --dashboard latest-dashboard.md --commits commits.txt --repo . --max-commits 8
+```
+
+The gate requires `review_ready`, `llm-review`, passed verification, completed dashboard tasks, valid commit subjects with the issue ID, final destination, and workspace cleanup evidence. When `--commits` is provided, those subjects must match `status.commits`. When `--repo` is provided, linked worktrees whose path or branch includes the issue ID must be cleaned up or explicitly listed in `workspace_cleanup.kept`.
 
 ## Linear Metadata Helper
 
@@ -144,7 +170,7 @@ The input must include `target_team`, `target_project`, and `component_tag`; the
 Extract the newest marked comment from copied Linear text:
 
 ```sh
-bun scripts/extract_marked_comment.ts [--kind plan|status|any] FILE
+bun scripts/extract_marked_comment.ts [--kind plan|status|dashboard|any] FILE
 ```
 
 Examples:
@@ -152,13 +178,14 @@ Examples:
 ```sh
 bun scripts/extract_marked_comment.ts --kind plan copied-linear-thread.md
 bun scripts/extract_marked_comment.ts --kind status copied-linear-thread.md
+bun scripts/extract_marked_comment.ts --kind dashboard copied-linear-thread.md
 ```
 
 Defaults to `--kind plan`.
 
 The extractor:
 
-- finds complete marked plan/status blocks
+- finds complete marked plan/status/dashboard blocks
 - returns the latest matching block by file order
 - prints only the marked block
 - fails when no matching marked comment exists

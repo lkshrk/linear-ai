@@ -5,6 +5,8 @@ const PLAN_START = /<!--\s*linear-ai:plan v1\b.*?-->/s;
 const PLAN_END = /<!--\s*\/linear-ai:plan\s*-->/s;
 const STATUS_START = /<!--\s*linear-ai:status v1\b.*?-->/s;
 const STATUS_END = /<!--\s*\/linear-ai:status\s*-->/s;
+const DASHBOARD_START = /<!--\s*linear-ai:dashboard v1\b.*?-->/s;
+const DASHBOARD_END = /<!--\s*\/linear-ai:dashboard\s*-->/s;
 const YAML_BLOCK = /```yaml\n(.*?)```/s;
 const LLM_STATE_LABELS = ["llm-refine", "llm-ready", "llm-active", "llm-blocked", "llm-review", "llm-split"];
 
@@ -166,7 +168,10 @@ function validateStatus(data: Mapping, options: ValidatorOptions = {}): void {
     "verification",
     "recommended_labels_to_apply",
     "recommended_labels_to_remove",
-    "recommended_status"
+    "recommended_status",
+    "commits",
+    "final_destination",
+    "workspace_cleanup"
   ]);
 
   if (data.schema !== "linear-ai.status.v1") throw new ValidationError("schema must be linear-ai.status.v1");
@@ -193,6 +198,49 @@ function validateStatus(data: Mapping, options: ValidatorOptions = {}): void {
   requireUniqueLlmStateLabel(data, "recommended_labels_to_apply");
   requireKnownLabels(data, "recommended_labels_to_apply", options.knownLabels);
   requireKnownLabels(data, "recommended_labels_to_remove", options.knownLabels);
+  requireItemFields(requireArray(data, "commits"), "commits", ["subject"]);
+  if (!["main", "feature_branch_pr", "undecided"].includes(String(data.final_destination))) {
+    throw new ValidationError("final_destination is invalid");
+  }
+  const cleanup = data.workspace_cleanup;
+  if (!isMapping(cleanup)) throw new ValidationError("workspace_cleanup must be a mapping");
+  if (!["cleaned", "intentionally_kept", "pending"].includes(String(cleanup.status))) {
+    throw new ValidationError("workspace_cleanup.status is invalid");
+  }
+  if (!Array.isArray(cleanup.kept)) throw new ValidationError("workspace_cleanup.kept must be an array");
+  requireItemFields(cleanup.kept, "workspace_cleanup.kept", ["path", "branch", "owner", "reason"]);
+}
+
+function validateDashboard(data: Mapping): void {
+  requireFields(data, [
+    "schema",
+    "issue_id",
+    "dashboard_revision",
+    "current_phase",
+    "llm_state",
+    "sp_phases",
+    "tasks",
+    "blockers",
+    "next_step",
+    "updated_by"
+  ]);
+
+  if (data.schema !== "linear-ai.dashboard.v1") throw new ValidationError("schema must be linear-ai.dashboard.v1");
+  if (!Number.isInteger(data.dashboard_revision) || Number(data.dashboard_revision) <= 0) {
+    throw new ValidationError("dashboard_revision must be a positive integer");
+  }
+
+  const spPhases = requireArray(data, "sp_phases");
+  for (const [index, phase] of spPhases.entries()) {
+    if (typeof phase !== "string" || !phase.startsWith("sp-")) throw new ValidationError(`sp_phases[${index}] must start with sp-`);
+  }
+
+  const tasks = requireItemFields(requireArray(data, "tasks", 1), "tasks", ["id", "state", "emoji", "title", "evidence"]);
+  requireItemEnum(tasks, "tasks", "state", ["done", "in_progress", "blocked", "deferred", "todo"]);
+  requireItemEnum(tasks, "tasks", "emoji", ["✅", "🔄", "⏸️", "⬜"]);
+  requireArray(data, "blockers");
+  if (typeof data.next_step !== "string" || data.next_step.length === 0) throw new ValidationError("next_step is required");
+  if (typeof data.updated_by !== "string" || data.updated_by.length === 0) throw new ValidationError("updated_by is required");
 }
 
 async function validateFile(path: string, options: ValidatorOptions = {}): Promise<string> {
@@ -208,6 +256,12 @@ async function validateFile(path: string, options: ValidatorOptions = {}): Promi
     const yaml = extractBlock(content, STATUS_START, STATUS_END, "status");
     validateStatus(loadYaml(yaml, "status"), options);
     return `ok ${path} status`;
+  }
+
+  if (DASHBOARD_START.test(content)) {
+    const yaml = extractBlock(content, DASHBOARD_START, DASHBOARD_END, "dashboard");
+    validateDashboard(loadYaml(yaml, "dashboard"));
+    return `ok ${path} dashboard`;
   }
 
   throw new ValidationError("no linear-ai marked comment found");

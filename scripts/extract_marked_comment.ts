@@ -1,13 +1,14 @@
 import { readFile } from "node:fs/promises";
 
-const USAGE = "usage: bun scripts/extract_marked_comment.ts [--kind plan|status|any] FILE";
+const USAGE = "usage: bun scripts/extract_marked_comment.ts [--kind plan|status|dashboard|any] FILE";
 
 const PATTERNS = {
   plan: /<!--\s*linear-ai:plan v1\b.*?-->.*?<!--\s*\/linear-ai:plan\s*-->/gs,
-  status: /<!--\s*linear-ai:status v1\b.*?-->.*?<!--\s*\/linear-ai:status\s*-->/gs
+  status: /<!--\s*linear-ai:status v1\b.*?-->.*?<!--\s*\/linear-ai:status\s*-->/gs,
+  dashboard: /<!--\s*linear-ai:dashboard v1\b.*?-->.*?<!--\s*\/linear-ai:dashboard\s*-->/gs
 };
 
-type Kind = "plan" | "status" | "any";
+type Kind = "plan" | "status" | "dashboard" | "any";
 type Match = [number, string, string];
 
 function parseArgs(argv: string[]): [Kind, string] {
@@ -18,7 +19,7 @@ function parseArgs(argv: string[]): [Kind, string] {
     const arg = argv[index];
     if (arg === "--kind") {
       const value = argv[index + 1] as Kind | undefined;
-      if (!value || !["plan", "status", "any"].includes(value)) throw new Error(USAGE);
+      if (!value || !["plan", "status", "dashboard", "any"].includes(value)) throw new Error(USAGE);
       kind = value;
       index += 1;
     } else if (arg === "-h" || arg === "--help") {
@@ -39,7 +40,11 @@ function scan(content: string, pattern: RegExp, kind: string): Match[] {
 
 function matchesFor(content: string, kind: Kind): Match[] {
   if (kind === "any") {
-    return [...scan(content, PATTERNS.plan, "plan"), ...scan(content, PATTERNS.status, "status")];
+    return [
+      ...scan(content, PATTERNS.plan, "plan"),
+      ...scan(content, PATTERNS.status, "status"),
+      ...scan(content, PATTERNS.dashboard, "dashboard")
+    ];
   }
   return scan(content, PATTERNS[kind], kind);
 }
@@ -59,7 +64,7 @@ async function main(argv: string[]): Promise<number> {
   const matches = matchesFor(content, kind).sort((left, right) => left[0] - right[0]);
 
   if (matches.length === 0) {
-    console.error(`no marked ${kind === "any" ? "plan/status" : kind} comment found`);
+    console.error(`no marked ${kind === "any" ? "plan/status/dashboard" : kind} comment found`);
     return 1;
   }
 
