@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Deliver Feature"
+  short_description: "Run the full Linear delivery workflow."
+  default_prompt: "Use $linear-deliver-feature to deliver this Linear issue from current state to review handoff."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for end-to-end workflow reads and writes."
+policy:
+  allow_implicit_invocation: true

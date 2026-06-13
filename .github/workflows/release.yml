@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+        type: string
+      sha:
+        description: "Commit SHA to release. Defaults to the tag target."
+        required: false
+        type: string
+      force_release:
+        description: "Skip CI-success validation for the release commit."
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+      REQUESTED_SHA: ${{ inputs.sha }}
+      FORCE_RELEASE: ${{ inputs.force_release }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Resolve release commit
+        id: release_commit
+        run: |
+          set -euo pipefail
+          sha="${REQUESTED_SHA}"
+          if [ -z "$sha" ]; then
+            sha="$(git rev-list -n 1 "$TAG")"
+          fi
+          tag_sha="$(git rev-list -n 1 "$TAG")"
+          if [ "$sha" != "$tag_sha" ]; then
+            echo "Requested SHA $sha does not match $TAG target $tag_sha" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify CI succeeded for release commit
+        if: ${{ !inputs.force_release }}
+        run: |
+          set -euo pipefail
+          sha="${{ steps.release_commit.outputs.sha }}"
+          count="$(gh run list --workflow "CI" --commit "$sha" --status completed --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')"
+          if [ "$count" -lt 1 ]; then
+            echo "No successful CI run found for $sha. Re-run CI or dispatch with force_release=true." >&2
+            exit 1
+          fi
+          echo "Found successful CI run for $sha"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run release package smoke checks
+        run: |
+          make install-smoke
+          make skills-smoke
+
+      - name: Build release notes
+        run: |
+          cat > release-notes.md <<EOF
+          ## Install
+
+          \`\`\`sh
+          npx skills add ${{ github.repository }}
+          npx skills add ${{ github.repository }} --agent codex --agent claude-code
+          \`\`\`
+
+          ## Verify
+
+          \`\`\`sh
+          npx skills add ${{ github.repository }} --list
+          npx skills use ${{ github.repository }} --skill linear-status
+          \`\`\`
+          EOF
+
+      - name: Create GitHub release
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --verify-tag \
+            --title "linear-ai $TAG" \
+            --notes-file release-notes.md

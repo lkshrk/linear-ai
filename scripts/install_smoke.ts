@@ -1,5 +1,6 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import YAML from "yaml";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -18,6 +19,13 @@ async function exists(relativePath: string): Promise<boolean> {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+function frontmatter(content: string): Record<string, unknown> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const parsed = YAML.parse(match[1]);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
 }
 
 async function main(): Promise<number> {
@@ -46,8 +54,24 @@ async function main(): Promise<number> {
       continue;
     }
     const content = await readFile(path.join(ROOT, skillPath), "utf8");
-    if (!new RegExp(`^name: ${skill}$`, "m").test(content)) {
+    const metadata = frontmatter(content);
+    if (metadata.name !== skill) {
       errors.push(`${skillPath} frontmatter name must match directory`);
+    }
+    if (typeof metadata.description !== "string" || metadata.description.length < 40) {
+      errors.push(`${skillPath} frontmatter description must be descriptive`);
+    }
+    const openaiPath = `skills/${skill}/agents/openai.yaml`;
+    if (!(await exists(openaiPath))) {
+      errors.push(`${openaiPath} is missing`);
+    } else {
+      const openai = YAML.parse(await readFile(path.join(ROOT, openaiPath), "utf8")) as Record<string, unknown>;
+      const interfaceMetadata = openai?.interface as Record<string, unknown> | undefined;
+      if (!interfaceMetadata?.display_name) errors.push(`${openaiPath} missing interface.display_name`);
+      if (!interfaceMetadata?.short_description) errors.push(`${openaiPath} missing interface.short_description`);
+      if (typeof interfaceMetadata?.default_prompt !== "string" || !interfaceMetadata.default_prompt.includes(`$${skill}`)) {
+        errors.push(`${openaiPath} default_prompt must mention $${skill}`);
+      }
     }
   }
 
@@ -58,8 +82,26 @@ async function main(): Promise<number> {
 
   const packageJson = await readJson("package.json");
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node"]) {
+  for (const script of ["validate:node", "metadata:node", "intake:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
+  }
+
+  for (const workflow of [".github/workflows/ci.yml", ".github/workflows/release.yml"]) {
+    if (!(await exists(workflow))) errors.push(`${workflow} is missing`);
+  }
+
+  if (await exists(".github/workflows/ci.yml")) {
+    const ci = await readFile(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
+    for (const required of ["make skills-smoke", "startsWith(github.ref, 'refs/tags/v')", "createWorkflowDispatch", "release.yml"]) {
+      if (!ci.includes(required)) errors.push(".github/workflows/ci.yml must dispatch release.yml after successful release-tag CI");
+    }
+  }
+
+  if (await exists(".github/workflows/release.yml")) {
+    const release = await readFile(path.join(ROOT, ".github/workflows/release.yml"), "utf8");
+    for (const required of ["force_release", "gh run list --workflow \"CI\"", "--commit \"$sha\"", "gh release create"]) {
+      if (!release.includes(required)) errors.push(".github/workflows/release.yml must verify CI by commit with force override support");
+    }
   }
 
   if (errors.length > 0) {

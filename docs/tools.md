@@ -48,6 +48,13 @@ make install-smoke
 bun scripts/install_smoke.ts
 ```
 
+Run `npx skills` compatibility checks for repository installs into Codex and Claude Code project skill directories:
+
+```sh
+make skills-smoke
+bun scripts/skills_smoke.ts
+```
+
 Render sample bug/feature issue bodies:
 
 ```sh

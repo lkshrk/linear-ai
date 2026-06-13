@@ -36,9 +36,16 @@ Run the local checks:
 make test
 make validate
 make verify-handoff
+make skills-smoke
 ```
 
 Use the skills directly from this checkout, or install them into a compatible agent runtime such as Codex or Claude Code. The workflow expects the Linear MCP server when the agent needs to read or update Linear.
+
+Install from a published GitHub repository with:
+
+```sh
+npx skills add owner/linear-ai --agent codex --agent claude-code
+```
 
 ## Typical Usage
 

@@ -1,4 +1,4 @@
-.PHONY: test validate render-examples metadata-summary verify-handoff self-review install-smoke
+.PHONY: test validate render-examples metadata-summary verify-handoff self-review install-smoke skills-smoke
 
 test:
 	bun test
@@ -21,3 +21,6 @@ self-review:
 
 install-smoke:
 	bun scripts/install_smoke.ts
+
+skills-smoke:
+	bun scripts/skills_smoke.ts

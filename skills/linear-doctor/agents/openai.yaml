@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Doctor"
+  short_description: "Check Linear setup for workflow readiness."
+  default_prompt: "Use $linear-doctor to check whether Linear teams, projects, and labels are ready."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for workspace teams, projects, and labels."
+policy:
+  allow_implicit_invocation: true
