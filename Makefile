@@ -1,4 +1,4 @@
-.PHONY: test validate render-examples metadata-summary verify-handoff self-review install-smoke skills-smoke
+.PHONY: test validate render-examples metadata-summary marketplace-generate marketplace-smoke verify-handoff self-review install-smoke skills-smoke
 
 test:
 	bun test
@@ -12,6 +12,12 @@ render-examples:
 
 metadata-summary:
 	bun scripts/linear_metadata.ts summary --metadata examples/linear-metadata.json
+
+marketplace-generate:
+	bun scripts/generate_marketplace_specs.ts --version package
+
+marketplace-smoke:
+	bun scripts/marketplace_smoke.ts
 
 verify-handoff:
 	bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md

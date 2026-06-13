@@ -1,0 +1,164 @@
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+const ROOT = path.resolve(import.meta.dirname, "..");
+const DEFAULT_OUT_DIR = "dist/marketplace";
+const DEFAULT_REPOSITORY = "lkshrk/linear-ai";
+
+const SNAPSHOT_PATHS = [
+  ".claude-plugin",
+  ".codex-plugin",
+  "LICENSE",
+  "README.md",
+  "agents",
+  "docs",
+  "examples",
+  "package.json",
+  "schemas",
+  "scripts",
+  "skills",
+  "templates"
+];
+
+type Args = {
+  codexUrl?: string;
+  outDir: string;
+  repository: string;
+  version: string;
+};
+
+function parseArgs(argv: string[]): Args {
+  const args = new Map<string, string>();
+  for (let index = 0; index < argv.length; index += 1) {
+    const key = argv[index];
+    if (!key.startsWith("--")) throw new Error(`unexpected argument ${key}`);
+    const value = argv[index + 1];
+    if (!value) throw new Error(`${key} requires a value`);
+    args.set(key, value);
+    index += 1;
+  }
+  return {
+    codexUrl: args.get("--codex-url"),
+    outDir: args.get("--out-dir") ?? DEFAULT_OUT_DIR,
+    repository: args.get("--repository") ?? DEFAULT_REPOSITORY,
+    version: args.get("--version") ?? "package"
+  };
+}
+
+async function packageVersion(): Promise<string> {
+  const pkg = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8")) as { version?: string };
+  if (!pkg.version) throw new Error("package.json version is required");
+  return pkg.version;
+}
+
+function codexMarketplace(repository: string, version: string, codexUrl?: string): object {
+  const source = codexUrl
+    ? { source: "url", url: codexUrl }
+    : { source: "url", url: `https://github.com/${repository}.git`, ref: `v${version}` };
+  return {
+    name: "linear-ai",
+    interface: {
+      displayName: "Linear AI"
+    },
+    plugins: [
+      {
+        name: "linear-ai",
+        source,
+        policy: {
+          installation: "AVAILABLE",
+          authentication: "ON_INSTALL"
+        },
+        category: "Productivity"
+      }
+    ]
+  };
+}
+
+function claudeMarketplace(version: string): object {
+  return {
+    name: "linear-ai",
+    owner: {
+      name: "Linear AI"
+    },
+    metadata: {
+      description: "Linear workflow skills for AI-assisted feature delivery.",
+      version
+    },
+    plugins: [
+      {
+        name: "linear-ai",
+        source: "./plugins/linear-ai",
+        description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, and review handoff workflow skills.",
+        version,
+        author: {
+          name: "Linear AI"
+        },
+        category: "development",
+        keywords: ["linear", "skills", "workflow", "codex", "claude-code"]
+      }
+    ]
+  };
+}
+
+function marketplaceReadme(repository: string, version: string): string {
+  return `# Linear AI Marketplace
+
+Marketplace metadata for \`${repository}@v${version}\`.
+
+## Codex
+
+\`\`\`sh
+codex plugin marketplace add lkshrk/agent-marketplace --ref main
+codex plugin add linear-ai --marketplace linear-ai
+\`\`\`
+
+## Claude Code
+
+\`\`\`sh
+claude plugin marketplace add lkshrk/agent-marketplace
+claude plugin install linear-ai@linear-ai
+\`\`\`
+`;
+}
+
+async function writeJson(filePath: string, value: object): Promise<void> {
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function copySnapshot(outDir: string): Promise<void> {
+  const pluginDir = path.join(outDir, "plugins", "linear-ai");
+  await mkdir(pluginDir, { recursive: true });
+  for (const relativePath of SNAPSHOT_PATHS) {
+    await cp(path.join(ROOT, relativePath), path.join(pluginDir, relativePath), {
+      recursive: true,
+      dereference: true,
+      force: true
+    });
+  }
+}
+
+async function main(argv: string[]): Promise<number> {
+  try {
+    const args = parseArgs(argv);
+    const version = args.version === "package" ? await packageVersion() : args.version.replace(/^v/, "");
+    const outDir = path.resolve(ROOT, args.outDir);
+    await rm(outDir, { recursive: true, force: true });
+    await mkdir(path.join(outDir, ".agents", "plugins"), { recursive: true });
+    await mkdir(path.join(outDir, ".claude-plugin"), { recursive: true });
+    await copySnapshot(outDir);
+
+    await writeJson(path.join(outDir, ".agents", "plugins", "marketplace.json"), codexMarketplace(args.repository, version, args.codexUrl));
+    await writeJson(path.join(outDir, ".claude-plugin", "marketplace.json"), claudeMarketplace(version));
+    await writeFile(path.join(outDir, "README.md"), marketplaceReadme(args.repository, version));
+
+    process.stdout.write(`ok marketplace specs ${args.repository}@v${version} -> ${path.relative(ROOT, outDir)}\n`);
+    return 0;
+  } catch (error) {
+    process.stderr.write(`${(error as Error).message}\n`);
+    return 1;
+  }
+}
+
+if (import.meta.main) {
+  process.exitCode = await main(process.argv.slice(2));
+}

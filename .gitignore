@@ -154,3 +154,4 @@ id_ed25519
 .pnpm-store/
 node_modules/
 .tmp/
+dist/

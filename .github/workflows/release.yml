@@ -79,6 +79,7 @@ jobs:
         run: |
           make install-smoke
           make skills-smoke
+          make marketplace-smoke
 
       - name: Build release notes
         run: |

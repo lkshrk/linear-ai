@@ -61,6 +61,20 @@ Render sample bug/feature issue bodies:
 make render-examples
 ```
 
+Generate a tap-style marketplace repository snapshot for Codex and Claude Code:
+
+```sh
+make marketplace-generate
+bun scripts/generate_marketplace_specs.ts --repository lkshrk/linear-ai --version package --out-dir dist/marketplace
+```
+
+Verify generated marketplace installability in isolated Codex and Claude Code homes:
+
+```sh
+make marketplace-smoke
+bun scripts/marketplace_smoke.ts
+```
+
 ## Linear MCP
 
 Linear MCP setup is documented in `docs/linear-mcp.md`.

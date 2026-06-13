@@ -82,8 +82,13 @@ async function main(): Promise<number> {
 
   const packageJson = await readJson("package.json");
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
+  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:smoke", "marketplace:smoke:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
+  }
+
+  const marketplaceDoc = await readFile(path.join(ROOT, "docs/marketplace.md"), "utf8");
+  for (const required of ["lkshrk/agent-marketplace", "codex plugin marketplace add", "claude plugin marketplace add", "plugins/linear-ai"]) {
+    if (!marketplaceDoc.includes(required)) errors.push(`docs/marketplace.md must mention ${required}`);
   }
 
   for (const workflow of [".github/workflows/ci.yml", ".github/workflows/release.yml"]) {

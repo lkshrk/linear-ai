@@ -33,18 +33,26 @@ List available skills before installing:
 npx skills add lkshrk/linear-ai --list
 ```
 
-### Codex Plugin Mode
+### Plugin Marketplace Mode
 
-This repository includes a Codex plugin manifest at `.codex-plugin/plugin.json`.
+This repository ships Codex and Claude Code plugin manifests:
 
-Codex plugin installation uses configured plugin marketplaces. Once this repository is published through a Codex marketplace source, install it with:
+- `.codex-plugin/plugin.json`
+- `.claude-plugin/plugin.json`
+
+Public plugin marketplace installation should use a separate tap-style marketplace repository, not this source repository directly. See [Marketplace Distribution](docs/marketplace.md).
+
+Once `lkshrk/agent-marketplace` is published, install with:
 
 ```sh
-codex plugin marketplace add <marketplace-source> --ref v0.5.0
-codex plugin add linear-ai --marketplace <marketplace-name>
+codex plugin marketplace add lkshrk/agent-marketplace --ref main
+codex plugin add linear-ai --marketplace linear-ai
 ```
 
-Until a marketplace source is configured, use the `npx skills` install above or open Codex in this checkout and ask it to use the repo-local skills.
+```sh
+claude plugin marketplace add lkshrk/agent-marketplace
+claude plugin install linear-ai@linear-ai
+```
 
 ### Linear MCP
 
@@ -117,6 +125,8 @@ make validate
 make verify-handoff
 make install-smoke
 make skills-smoke
+make marketplace-generate
+make marketplace-smoke
 ```
 
 ## Repository Layout
@@ -129,6 +139,7 @@ make skills-smoke
 - `schemas/` - machine-readable YAML schemas.
 - `scripts/` - validators and install smoke checks.
 - `docs/install.md` - detailed install notes.
+- `docs/marketplace.md` - tap-style marketplace distribution.
 - `docs/tools.md` - helper command reference.
 - `docs/superpowers-linear-persistence.md` - Linear dashboard persistence contract.
 

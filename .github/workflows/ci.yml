@@ -51,6 +51,9 @@ jobs:
       - name: Run npx skills smoke checks
         run: make skills-smoke
 
+      - name: Run plugin marketplace smoke checks
+        run: make marketplace-smoke
+
       - name: Validate Node runner compatibility
         run: npm run validate:node
 
