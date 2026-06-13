@@ -29,7 +29,7 @@ release-create:
 	bun scripts/create_release.ts $(VERSION)
 
 verify-handoff:
-	bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
+	bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --description examples/review-ready-dashboard-comment.md
 
 self-review:
 	bun scripts/self_review.ts

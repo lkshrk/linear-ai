@@ -15,6 +15,7 @@ const DASHBOARD_BLOCK = /<!--\s*linear-ai:dashboard v1\b.*?-->.*?<!--\s*\/linear
 const YAML_BLOCK = /```yaml\n(.*?)```/s;
 const LLM_STATE_LABELS = ["llm-refine", "llm-ready", "llm-active", "llm-blocked", "llm-review", "llm-split"];
 const DASHBOARD_TASK_STATES = ["todo", "active", "blocked", "done", "skipped", "deferred"];
+const USAGE = "usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] [--description issue-description.md] FILE [FILE...]";
 const DASHBOARD_TASK_SYMBOLS: Record<string, string> = {
   todo: "□",
   active: "●",
@@ -30,6 +31,9 @@ class ValidationError extends Error {}
 type Mapping = Record<string, unknown>;
 type ValidatorOptions = {
   knownLabels?: Set<string>;
+};
+type ValidateFileOptions = ValidatorOptions & {
+  allowDashboardComment?: boolean;
 };
 type SchemaKind = "plan" | "status" | "dashboard";
 
@@ -335,10 +339,26 @@ async function latestReadyPlan(content: string, options: ValidatorOptions = {}):
   return latest;
 }
 
-async function validateFile(path: string, options: ValidatorOptions = {}): Promise<string> {
+async function validateDescription(path: string, options: ValidatorOptions = {}): Promise<{ message?: string; hasDashboard: boolean }> {
+  const content = await readFile(path, "utf8");
+  const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
+  if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard blocks found in issue description");
+  if (dashboardMatches.length === 0) return { hasDashboard: false };
+
+  const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
+  const data = loadYaml(yaml, "dashboard");
+  await validateSchema(data, "dashboard");
+  validateDashboard(data, await latestReadyPlan(content, options));
+  return { message: `ok ${path} dashboard-description`, hasDashboard: true };
+}
+
+async function validateFile(path: string, options: ValidateFileOptions = {}): Promise<string> {
   const content = await readFile(path, "utf8");
   const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
   if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard comments found");
+  if (dashboardMatches.length === 1 && options.allowDashboardComment === false) {
+    throw new ValidationError("dashboard comments are fallback-only when description dashboard exists");
+  }
 
   if (dashboardMatches.length === 1) {
     const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
@@ -380,9 +400,10 @@ async function loadKnownLabels(path: string): Promise<Set<string>> {
   );
 }
 
-async function parseArgs(argv: string[]): Promise<{ files: string[]; options: ValidatorOptions }> {
+async function parseArgs(argv: string[]): Promise<{ files: string[]; options: ValidatorOptions; descriptionPath?: string }> {
   const files: string[] = [];
   const options: ValidatorOptions = {};
+  let descriptionPath: string | undefined;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -391,30 +412,46 @@ async function parseArgs(argv: string[]): Promise<{ files: string[]; options: Va
       if (!metadataPath) throw new ValidationError("--metadata requires a path");
       options.knownLabels = await loadKnownLabels(metadataPath);
       index += 1;
+    } else if (arg === "--description") {
+      descriptionPath = argv[index + 1];
+      if (!descriptionPath) throw new ValidationError("--description requires a path");
+      index += 1;
     } else {
       files.push(arg);
     }
   }
 
-  return { files, options };
+  return { files, options, descriptionPath };
 }
 
 async function main(argv: string[]): Promise<number> {
   if (argv.length === 0) {
-    console.error("usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]");
+    console.error(USAGE);
     return 2;
   }
 
-  const { files, options } = await parseArgs(argv);
-  if (files.length === 0) {
-    console.error("usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]");
+  const { files, options, descriptionPath } = await parseArgs(argv);
+  if (files.length === 0 && !descriptionPath) {
+    console.error(USAGE);
     return 2;
   }
 
   let failures = 0;
+  let descriptionHasDashboard = false;
+  if (descriptionPath) {
+    try {
+      const result = await validateDescription(descriptionPath, options);
+      descriptionHasDashboard = result.hasDashboard;
+      if (result.message) console.log(result.message);
+    } catch (error) {
+      failures += 1;
+      console.error(`${descriptionPath}: ${(error as Error).message}`);
+    }
+  }
+
   for (const path of files) {
     try {
-      console.log(await validateFile(path, options));
+      console.log(await validateFile(path, { ...options, allowDashboardComment: !descriptionHasDashboard }));
     } catch (error) {
       failures += 1;
       console.error(`${path}: ${(error as Error).message}`);

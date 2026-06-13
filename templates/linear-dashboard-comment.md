@@ -1,6 +1,6 @@
-# Linear Dashboard Comment Template
+# Linear Dashboard Description Template
 
-Copy this into one Linear issue comment and update that one dashboard comment as progress changes.
+Copy this marked block into the Linear issue description and update only this block as progress changes. Preserve any human-authored description text outside the markers.
 
 ````markdown
 <!-- linear-ai:dashboard v1 issue=TEAM-123 dashboard_rev=1 -->
@@ -62,7 +62,8 @@ Finish implementation and run verification.
 ## Validity Rules
 
 - YAML should match `schemas/linear-ai.dashboard.v1.schema.yaml`.
-- There should be one dashboard comment per issue.
+- There should be one dashboard block in the issue description.
+- Dashboard comments are fallback-only when description writes are unavailable.
 - The task list must use CLI-style state symbols and match the machine-readable `tasks` list.
 - Task IDs must match the latest ready plan checklist IDs when a plan is available.
 - `last_checked` records the repo, worktree, plan, status, PR, or verification evidence used for dashboard repair.

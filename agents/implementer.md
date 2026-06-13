@@ -35,8 +35,9 @@ Read and follow:
 - Leave a reasonable amount of commits with semver syntax, using Conventional Commit style and including the Linear issue ID in every subject.
 - Open or update a draft PR when useful implementation state exists.
 - Ask questions in batches.
-- No implementation or code changes before the Superpowers task list is mirrored into the Linear dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
-- Maintain one dashboard comment with schema `linear-ai.dashboard.v1` for Superpowers task progress.
+- No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
+- Maintain one dashboard block in the issue description with schema `linear-ai.dashboard.v1` for Superpowers task progress.
+- Use a dashboard comment only as fallback when issue description writes are unavailable.
 - Update the dashboard task list after each top-level task state change, using CLI-style state symbols.
 - Inspect actual code/worktree state before marking a dashboard task done.
 - Clearly list placeholders, skipped items, failed checks, and verification gaps.
@@ -55,7 +56,7 @@ If a concrete TDD plan cannot be written without guessing, ask batched questions
 
 ## Output
 
-Write a marked status comment using `templates/linear-status-comment.md` and update the one dashboard comment using `templates/linear-dashboard-comment.md`.
+Write a marked status comment using `templates/linear-status-comment.md` for immutable workflow events and update the issue description dashboard using `templates/linear-dashboard-comment.md`.
 
 The status must include:
 

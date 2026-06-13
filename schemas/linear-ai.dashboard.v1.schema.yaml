@@ -1,7 +1,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: linear-ai.dashboard.v1
-title: Linear AI Dashboard Comment
-# Contract: one dashboard comment per issue with a human CLI-style task list and machine-readable task state.
+title: Linear AI Dashboard
+# Contract: one dashboard block per issue description with a human CLI-style task list and machine-readable task state.
 type: object
 additionalProperties: false
 required:

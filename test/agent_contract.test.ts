@@ -270,7 +270,7 @@ test("linear status skill diagnoses current phase and next action from issue sta
     "missing evidence",
     "recommended next skill",
     "REQUIRED_LINEAR_MUTATIONS",
-    "labels and comments disagree",
+    "description dashboard, and comments disagree",
     "validate_marked_comments.ts"
   ]) {
     assert.match(skill, new RegExp(term, "i"), `linear-status should mention ${term}`);
@@ -296,7 +296,7 @@ test("linear doctor checks Linear setup before workflow execution", async () => 
   assert.match(setupDoc, /sp-review/);
 });
 
-test("dashboard comment contract supports one updatable progress comment", async () => {
+test("dashboard contract supports one updatable issue description progress block", async () => {
   const dashboardTemplate = await readDoc("templates/linear-dashboard-comment.md");
   const dashboardSchema = await readDoc("schemas/linear-ai.dashboard.v1.schema.yaml");
   const persistenceDoc = await readDoc("docs/superpowers-linear-persistence.md");
@@ -305,7 +305,7 @@ test("dashboard comment contract supports one updatable progress comment", async
 
   for (const source of [dashboardTemplate, dashboardSchema, persistenceDoc, implementSkill, deliverSkill]) {
     assert.match(source, /linear-ai\.dashboard\.v1/);
-    assert.match(source, /one dashboard comment/i);
+    assert.match(source, /issue description|description dashboard/i);
     assert.match(source, /task list/i);
     assert.match(source, /symbol/i);
   }

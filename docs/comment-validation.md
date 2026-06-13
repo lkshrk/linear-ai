@@ -52,9 +52,9 @@ Review handoff can start only when:
 - placeholders are absent or explicitly accepted
 - verification is passing or gaps are explicitly accepted
 
-## Dashboard Comment
+## Dashboard Description
 
-A dashboard comment is valid only when:
+A dashboard description block is valid only when:
 
 - it starts with `<!-- linear-ai:dashboard v1 ... -->`
 - it ends with `<!-- /linear-ai:dashboard -->`
@@ -62,13 +62,13 @@ A dashboard comment is valid only when:
 - the YAML matches `schemas/linear-ai.dashboard.v1.schema.yaml`
 - `schema` is `linear-ai.dashboard.v1`
 - `issue_id` matches the Linear issue
-- there is one dashboard comment per issue, updated in place when possible
+- there is one dashboard block in the issue description, updated in place
 - `tasks` is present and mirrors the human task list
 - every task has a valid state, CLI-style state symbol, and non-empty `last_checked` evidence
 - task IDs match the latest ready plan checklist when the plan is present
 - `next_step` is present
 
-The dashboard is the Superpowers progress surface. Do not create a new ordinary progress comment for every task change.
+The dashboard is the Superpowers progress surface. Dashboard comments are fallback-only when issue description writes are unavailable. Keep ordinary comments for immutable workflow events instead of creating a progress comment for every task change.
 
 ## Failure Rule
 

@@ -114,16 +114,17 @@ Run it only when you are ready to authorize Codex against Linear.
 
 ## Marked Comment Validator
 
-Validate marked Linear plan/status/dashboard comments:
+Validate marked Linear plan/status comments and the issue description dashboard:
 
 ```sh
-bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]
+bun scripts/validate_marked_comments.ts [--metadata metadata.json] [--description issue-description.md] FILE [FILE...]
 ```
 
 Examples:
 
 ```sh
 bun scripts/validate_marked_comments.ts examples/plan-comment.md examples/status-comment.md examples/dashboard-comment.md
+bun scripts/validate_marked_comments.ts --description copied-issue-description.md copied-status-comment.md
 bun scripts/validate_marked_comments.ts --metadata linear-metadata.json copied-plan-comment.md
 ```
 
@@ -137,6 +138,7 @@ The validator checks:
 - known Linear labels when `--metadata` is provided
 - ready plans do not contain unresolved open questions unless accepted
 - status comments contain verification entries
+- dashboard comments are fallback-only when a description dashboard exists
 
 It does not call Linear and does not mutate files.
 
@@ -146,19 +148,20 @@ Verify that an issue can move to review-ready:
 
 ```sh
 bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --description latest-issue-description.md
 ```
 
 With a commit subject file from Git:
 
 ```sh
 git log --format=%s main..HEAD > commits.txt
-bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --dashboard latest-dashboard.md --commits commits.txt
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --description latest-issue-description.md --commits commits.txt
 ```
 
 With repository worktree checks and a custom commit-count limit:
 
 ```sh
-bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --dashboard latest-dashboard.md --commits commits.txt --repo . --max-commits 8
+bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --description latest-issue-description.md --commits commits.txt --repo . --max-commits 8
 ```
 
 The gate requires `review_ready`, `llm-review`, passed verification, completed dashboard tasks, valid commit subjects with the issue ID, final destination, and workspace cleanup evidence. When `--commits` is provided, those subjects must match `status.commits`. When `--repo` is provided, linked worktrees whose path or branch includes the issue ID must be cleaned up or explicitly listed in `workspace_cleanup.kept`.

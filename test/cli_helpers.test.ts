@@ -364,6 +364,35 @@ test("validator rejects duplicate dashboard comments", async () => {
   }
 });
 
+test("validator accepts canonical dashboard from issue description", async () => {
+  const description = await withTempFile("linear-ai-description-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  const status = await withTempFile("linear-ai-description-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  try {
+    const result = await runBun("validate_marked_comments.ts", ["--description", description.file, status.file]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /dashboard-description/);
+    assert.match(result.stdout, /status/);
+  } finally {
+    await rm(description.dir, { recursive: true, force: true });
+    await rm(status.dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects dashboard comments when description has canonical dashboard", async () => {
+  const description = await withTempFile("linear-ai-description-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  const comment = await withTempFile("linear-ai-comment-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("validate_marked_comments.ts", ["--description", description.file, comment.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard comments are fallback-only when description dashboard exists/);
+  } finally {
+    await rm(description.dir, { recursive: true, force: true });
+    await rm(comment.dir, { recursive: true, force: true });
+  }
+});
+
 test("validator rejects dashboard drift from latest ready plan revision", async () => {
   const dashboard = markedDashboard(reviewReadyDashboardYaml("plan_revision: 1\n"));
   const { dir, file } = await withTempFile("linear-ai-dashboard-stale-plan-", ".md", `${markedReadyPlan(["T1"], 2)}\n${dashboard}`);
@@ -507,6 +536,27 @@ updated_by: linear-ai
     await rm(status.dir, { recursive: true, force: true });
     await rm(dashboard.dir, { recursive: true, force: true });
     await rm(commits.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier accepts review-ready dashboard from issue description", async () => {
+  const status = await withTempFile("linear-ai-description-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const description = await withTempFile("linear-ai-description-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--description",
+      description.file
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok handoff CIV-999/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(description.dir, { recursive: true, force: true });
   }
 });
 

@@ -18,9 +18,9 @@ Use the repository root as the workflow source. Read and follow:
 
 Start from the newest valid marked plan comment. Do not invent missing product behavior. If blocked, post batched questions in a marked status comment and apply or emit the correct Linear mutations.
 
-No implementation or code changes before the Superpowers task list is mirrored into the Linear dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
+No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
 
-Maintain one dashboard comment with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with CLI-style state symbols, stable ready-plan task IDs, and `last_checked` repair evidence after each top-level task state change. Inspect the actual code/worktree state before marking a task done.
+Maintain one dashboard block in the issue description with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with CLI-style state symbols, stable ready-plan task IDs, and `last_checked` repair evidence after each top-level task state change. Inspect the actual code/worktree state before marking a task done. Use a dashboard comment only as fallback when description writes are unavailable.
 
 ## Parallel Execution
 
@@ -59,18 +59,18 @@ Use these Linear MCP tools when available:
 - `get_issue` - read the current issue, labels, status, and branch metadata.
 - `list_comments` - find the newest marked plan and status comments before acting.
 - `save_comment` - post marked implementation status, questions, blockers, and review-ready evidence.
-- `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, and update status when writes are available.
+- `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, update issue description dashboard, and update status when writes are available.
 
-Validate status and dashboard comments with:
+Validate status comments and the issue description dashboard with:
 
 ```sh
-scripts/validate_marked_comments.ts <status-comment-file> <dashboard-comment-file>
+scripts/validate_marked_comments.ts --description <issue-description-file> <status-comment-file>
 ```
 
 Before applying `llm-review` or claiming review-ready, run the hard handoff gate:
 
 ```sh
-scripts/verify_handoff.ts --issue-id <ISSUE-ID> --status <status-comment-file> --dashboard <dashboard-comment-file>
+scripts/verify_handoff.ts --issue-id <ISSUE-ID> --status <status-comment-file> --description <issue-description-file>
 ```
 
 If a Linear metadata snapshot is available, validate labels with:

@@ -11,18 +11,18 @@ Use this as the read-only status and resume detector for one Linear issue. Start
 
 Use these Linear MCP tools when available:
 
-- `get_issue` - read the current issue fields, labels, status, assignee, project, branch metadata, and links.
-- `list_comments` - find the newest marked plan, status, and dashboard comments.
+- `get_issue` - read the issue description dashboard, labels, status, assignee, project, branch metadata, and links.
+- `list_comments` - find the newest marked plan and status comments.
 
-Validate marked comments with:
+Validate marked comments and the issue description dashboard with:
 
 ```sh
-scripts/validate_marked_comments.ts <comment-file>
+scripts/validate_marked_comments.ts --description <issue-description-file> <comment-file>
 ```
 
 Use the local JavaScript package manager or runtime available to the agent: Bun can run the `.ts` scripts directly; Node/npm/pnpm/yarn environments should run them through a TypeScript runner such as `tsx`.
 
-If Linear MCP read tools are unavailable, ask for pasted issue labels, status, and newest marked comments. If Linear MCP write tools are unavailable or the issue state needs repair, emit `REQUIRED_LINEAR_MUTATIONS` with exact labels/status/comments to apply.
+If Linear MCP read tools are unavailable, ask for pasted issue description, labels, status, and newest marked comments. If Linear MCP write tools are unavailable or the issue state needs repair, emit `REQUIRED_LINEAR_MUTATIONS` with exact description, labels, status, and comments to apply.
 
 ## Phase Detection
 
@@ -34,9 +34,9 @@ Determine current phase from actual issue state, not memory:
 - `implement` - issue has `llm-ready` and newest valid plan has `plan_status: ready`; run `linear-implement`.
 - `blocked` - issue has `llm-blocked` or newest status comment has unresolved questions; run `linear-refine` or ask the listed blocker question.
 - `review-handoff` - issue has `llm-review` or newest status comment is `review_ready`; prepare human review.
-- `repair-state` - labels and comments disagree, multiple `llm-*` states are present, newest marked comment is invalid, or required dashboard/status evidence is missing.
+- `repair-state` - labels, description dashboard, and comments disagree, multiple `llm-*` states are present, newest marked comment is invalid, or required dashboard/status evidence is missing.
 
-When labels and comments disagree, prefer validated marked comments as evidence, then recommend the smallest label/status repair.
+When labels, the description dashboard, and comments disagree, prefer validated marked evidence as evidence, then recommend the smallest description, label, or status repair.
 
 ## Step Completion Handoff
 

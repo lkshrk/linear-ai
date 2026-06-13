@@ -6,7 +6,7 @@ It gives agents a repeatable path for one issue:
 
 1. Create or clean up the Linear issue.
 2. Refine it into an implementation-ready plan.
-3. Track progress in one dashboard comment.
+3. Track progress in one dashboard block in the issue description.
 4. Implement, verify, and hand off for review.
 
 ## Install
@@ -95,7 +95,7 @@ Use linear-refine on HCL-123. Grill me until the plan is implementation-ready.
 Deliver a feature:
 
 ```text
-Use linear-deliver-feature on HCL-123. Keep Linear updated with the dashboard comment and status comment.
+Use linear-deliver-feature on HCL-123. Keep Linear updated with the issue description dashboard and status comments.
 ```
 
 ## Local Development
