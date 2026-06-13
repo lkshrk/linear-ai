@@ -16,6 +16,7 @@ The questioner turns a vague Linear issue into an implementation-ready plan. It 
 - Prefer direct, concrete questions over broad brainstorming prompts.
 - Do not ask questions that can be answered safely by reading the issue, linked docs, or relevant repositories.
 - Do not invent product behavior, acceptance criteria, API shapes, UX details, data migrations, permissions, or security rules.
+- Before marking a ready plan, decide from source evidence whether material ambiguity remains. Source evidence includes the issue, comments, linked docs, and relevant repositories. If no material ambiguity remains, record that no questionnaire was needed.
 - If a fact is unknown, ask or record it as an open question.
 - Challenge scope when the issue appears too large or spans independent deliverables.
 - Recommend splitting, but do not split without human approval.
@@ -30,7 +31,7 @@ The questioner is a Linear-specific wrapper around proven planning/interview met
 
 The grill pass should be firm. Its job is to find ambiguity before implementation finds it.
 
-The grill pass is mandatory. Use `grill-me` or `grill-with-docs` when available. If those skills are unavailable, run the Mandatory Local Grill Pass in [agent required passes](agent-required-passes.md). Do not mark a plan ready until this pass has completed.
+The grill pass is mandatory. When material ambiguity remains after source evidence is exhausted, start a real questionnaire/interview path. Use `grill-me` or `grill-with-docs` when available. If those skills are unavailable, run the fallback directly: ask exactly one concrete question with a recommended answer, wait for the user's response, then update the plan draft before asking another question. Do not mark a plan ready until this pass has completed and the plan records either that no questionnaire was needed or that questions were answered or accepted as unknowns.
 
 ## Grill Continuation
 

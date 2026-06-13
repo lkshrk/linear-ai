@@ -389,6 +389,24 @@ test("linear refine forces grill continuation after each answer", async () => {
   assert.match(questionerDoc, /do not mark.*ready.*until.*grill/i);
 });
 
+test("linear refine starts a real questionnaire when ambiguity remains", async () => {
+  const refineSkill = await readDoc("skills/linear-refine/SKILL.md");
+  const questionerAgent = await readAgent("questioner");
+  const questionerDoc = await readDoc("docs/questioner.md");
+
+  for (const source of [refineSkill, questionerAgent, questionerDoc]) {
+    assert.match(source, /questionnaire|interview/i);
+    assert.match(source, /material ambiguity/i);
+    assert.match(source, /source evidence/i);
+    assert.match(source, /grill-me.*available/i);
+    assert.match(source, /fallback/i);
+    assert.match(source, /one concrete question/i);
+    assert.match(source, /recommended answer/i);
+    assert.match(source, /wait.*response/i);
+    assert.match(source, /no questionnaire was needed/i);
+  }
+});
+
 test("workflow skills define step completion handoff instead of stopping silently", async () => {
   const standaloneDocs = [
     "skills/linear-create-issue/SKILL.md",

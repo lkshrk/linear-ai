@@ -16,6 +16,14 @@ Use the repository root as the workflow source. Read and follow:
 
 Ask one question at a time. Run the required local review/grill pass before marking a plan ready.
 
+## Questionnaire Start
+
+Before writing a ready plan, decide from source evidence whether a questionnaire is needed. Source evidence includes the issue, comments, linked docs, and codebase inspection. If no material ambiguity remains, record that no questionnaire was needed and continue to the ready plan.
+
+If material ambiguity remains after source evidence is exhausted, start a real questionnaire/interview path instead of relying on copied grill prose. Use `grill-me` or `grill-with-docs` when available, but do not require those skills to be installed. If they are unavailable, run the fallback directly: ask exactly one concrete question, include your recommended answer, wait for the user's response, then update the plan draft before asking the next question.
+
+Do not mark `plan_status: ready` until the questionnaire evidence shows that every material ambiguity was either answered or explicitly accepted as unknown.
+
 ## Grill Continuation
 
 Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.
