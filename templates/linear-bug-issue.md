@@ -29,7 +29,7 @@ What happens instead.
 
 - Target team:
 - Target project:
-- Component tag:
+- Suggested labels:
 - Page/area:
 - Environment:
 - Account/tenant:
@@ -48,6 +48,6 @@ What happens instead.
 - Do not invent reproduction steps.
 - Do not invent expected behavior.
 - `Evidence / Links` may be empty.
-- Ask or propose `Target team`, `Target project`, and `Component tag` before finalizing.
+- Ask or propose `Target team`, `Target project`, and matching `Suggested labels` before finalizing; ask whether to add more tags.
 - Add or recommend `bug`.
 - Add or recommend `llm-refine` when implementation planning is needed.

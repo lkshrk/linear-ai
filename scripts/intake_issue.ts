@@ -53,17 +53,28 @@ function lines(value: unknown): string {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
+function selectedLabels(data: IssueData): string[] {
+  const labels = Array.isArray(data.selected_labels) ? data.selected_labels : data.component_tag ? [data.component_tag] : [];
+  return labels.filter((label): label is string => typeof label === "string" && label.length > 0);
+}
+
 function numbered(value: unknown): string {
   const items = Array.isArray(value) ? value : [value];
   return items.map((item, index) => `${index + 1}. ${item}`).join("\n");
 }
 
 function context(data: IssueData): string {
-  return [`Target team: ${data.target_team}`, `Target project: ${data.target_project}`, `Component tag: ${data.component_tag}`, lines(data.context)].join("\n");
+  const labels = selectedLabels(data);
+  return [
+    `Target team: ${data.target_team}`,
+    `Target project: ${data.target_project}`,
+    `Suggested labels: ${labels.length > 0 ? labels.join(", ") : "None"}`,
+    lines(data.context)
+  ].join("\n");
 }
 
 function renderBug(data: IssueData): string {
-  requireFields(data, [...BUG_FIELDS, "target_team", "target_project", "component_tag"]);
+  requireFields(data, [...BUG_FIELDS, "target_team", "target_project"]);
   return `# ${data.title}
 
 ## Problem
@@ -93,7 +104,7 @@ ${lines(data.evidence_links)}
 }
 
 function renderFeature(data: IssueData): string {
-  requireFields(data, [...FEATURE_FIELDS, "target_team", "target_project", "component_tag"]);
+  requireFields(data, [...FEATURE_FIELDS, "target_team", "target_project"]);
   return `# ${data.title}
 
 ## Problem / Opportunity
@@ -134,13 +145,13 @@ function render(data: IssueData): string {
 
 function metadataFor(data: IssueData): Record<string, unknown> {
   const typeLabel = data.type === "bug" ? "Bug" : "Feature";
-  const labels = [typeLabel, data.component_tag];
-  if (data.add_llm_refine !== false) labels.push("llm-refine");
+  const labels = [...new Set([typeLabel, ...selectedLabels(data)])];
+  if (data.add_llm_refine !== false && !labels.includes("llm-refine")) labels.push("llm-refine");
   return {
     issue_type: data.type,
     target_team: data.target_team,
     target_project: data.target_project,
-    component_tag: data.component_tag,
+    selected_labels: selectedLabels(data),
     labels_to_apply: labels
   };
 }
@@ -155,6 +166,7 @@ async function main(argv: string[]): Promise<number> {
       targetTeam: String(input.target_team ?? ""),
       targetProject: String(input.target_project ?? ""),
       componentTag: String(input.component_tag ?? ""),
+      selectedLabels: selectedLabels(input).join(","),
       typeLabel,
       llmLabel: input.add_llm_refine === false ? undefined : "llm-refine"
     });

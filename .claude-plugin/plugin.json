@@ -6,6 +6,7 @@
     "./skills/linear-create-issue",
     "./skills/linear-refine",
     "./skills/linear-implement",
+    "./skills/linear-close",
     "./skills/linear-deliver-feature",
     "./skills/linear-status",
     "./skills/linear-doctor"

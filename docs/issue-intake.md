@@ -9,7 +9,7 @@ The issue-intake agent turns rough bug reports and feature ideas into clean Line
 - ask for missing required signal one question at a time
 - recommend labels without guessing
 - route every issue to the `Civora` Linear team
-- ask or propose target team, target project, and component tag metadata for routing
+- ask or propose target team, target project, and matching Linear labels/tags for routing
 - hand off to the questioner through `llm-refine` when implementation planning is needed
 
 ## Operating Rules
@@ -20,7 +20,7 @@ The issue-intake agent turns rough bug reports and feature ideas into clean Line
 - Do not put priority in the issue body; priority is a structured Linear property.
 - Do not invent reproduction steps, expected behavior, affected users, context, or evidence.
 - Before finalizing, query available Linear teams, query available Linear projects, and query available Linear labels.
-- Ask or propose a target team, target project, and component tag before finalizing. Use only values from the current Linear query results. If the correct routing metadata is clear from the issue text, propose it; if not, ask one targeted question.
+- Ask or propose a target team, target project, and matching Linear labels before finalizing. Use only values from the current Linear query results. Inspect all live labels/tags, propose likely matches, and ask whether to add more before finalizing.
 - Do not use stale or hardcoded tag lists; live Linear teams, projects, and labels are the source of truth.
 - Prefer concise issue text that is specific enough for triage.
 - Keep implementation planning out of the issue body unless the human already provided it.
@@ -84,14 +84,15 @@ If the human explicitly provides priority, set the Linear property. Otherwise le
 
 ## Routing Metadata
 
-Target team is the structured Linear team. Target project is the structured Linear project when one applies. Component tag is a Linear Component label used for triage and routing.
+Target team is the structured Linear team. Target project is the structured Linear project when one applies. Matching Linear labels/tags are any live Linear labels that help classification, triage, or routing.
 
 At intake time, query available Linear teams, query available Linear projects, and query available Linear labels. Use the returned values to decide whether requested routing metadata exists and whether it is valid for the issue.
 
 Issue-intake must not leave routing metadata implicit:
 
-- If the human provides target team, target project, or component tag, preserve valid values.
+- If the human provides target team, target project, or labels/tags, preserve valid values.
 - If the right routing metadata is clear from the issue text and exists in live Linear results, propose it in recommended metadata.
+- Before finalizing, ask whether the user wants to add more matching tags unless they already explicitly declined.
 - If routing metadata is unclear, ask one targeted question before finalizing.
 - If only one field is unclear, ask only for that field.
 - If a requested value does not exist in Linear, propose the nearest available value or ask which available value to use.
@@ -110,7 +111,7 @@ It also recommends:
 - AI label: `llm-refine` when planning is still needed
 - target team: `Civora`
 - target project if known
-- component tag
+- proposed matching Linear labels/tags
 - Linear priority property only if explicitly selected
 
 If Linear MCP write tools are available, issue-intake creates or updates the Linear issue and applies clear product/AI labels directly. If writes are unavailable, it emits `REQUIRED_LINEAR_MUTATIONS`.

@@ -39,7 +39,7 @@ async function smokeAgent(agent: "codex" | "claude-code", expectedPath: string):
 async function main(): Promise<number> {
   try {
     const listOutput = await run("npx", ["-y", "skills", "add", ROOT, "--list"], ROOT);
-    for (const skill of ["linear-create-issue", "linear-refine", "linear-implement", "linear-deliver-feature", "linear-status", "linear-doctor"]) {
+    for (const skill of ["linear-create-issue", "linear-refine", "linear-implement", "linear-close", "linear-deliver-feature", "linear-status", "linear-doctor"]) {
       if (!listOutput.includes(skill)) throw new Error(`npx skills list did not include ${skill}`);
     }
 

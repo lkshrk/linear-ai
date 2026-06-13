@@ -14,6 +14,7 @@ Exactly one `llm-*` workflow state label may be present on an issue at a time. A
 - `llm-blocked` - implementation is blocked by questions or missing authority.
 - `llm-review` - implementation is ready for human review.
 - `llm-split` - issue was split into sub-issues.
+- Closed issues have no `llm-*` workflow state label.
 
 ## Status Mapping
 
@@ -24,7 +25,7 @@ Recommended status transitions:
 - `llm-active` -> In Progress.
 - `llm-blocked` -> Blocked if the team uses that status; otherwise keep current status and rely on label.
 - `llm-review` -> In Review.
-- merged PR -> Done through Linear Git integration where possible.
+- merged PR -> Done through `linear-close` after merge, mainline, and CI evidence is verified.
 
 Labels and statuses can coexist. The label is the AI state machine. The status is the team planning signal.
 
@@ -62,6 +63,18 @@ An interview is finished only when all material questions are answered or the hu
 8. Questioner resumes refinement and writes a new plan revision.
 9. Orchestrator removes `llm-blocked`, adds `llm-active`, and requeues implementation when the newest plan revision resolves the blocker.
 10. When complete, orchestrator removes all other `llm-*` states, adds `llm-review`, moves the issue to In Review, and marks the PR ready.
+
+## Closeout Lifecycle
+
+1. Closer finds an issue with `llm-review` and a linked PR or review-ready status comment.
+2. Closer verifies the linked PR is merged.
+3. Closer verifies mainline contains the merge commit, either with local Git or reliable remote evidence.
+4. Closer verifies CI is complete and successful for the merged PR or merge commit.
+5. Closer updates the issue description dashboard when a marked dashboard block is present.
+6. Closer posts one final immutable closeout/status comment with merge evidence, CI evidence, dashboard evidence, and final mutations.
+7. Closer moves the issue to `Done`, removes all `llm-*` labels, and preserves cumulative `sp-*` labels.
+
+If merged PR, mainline, or CI evidence is missing, closer must not move the issue to `Done`. It reports the missing evidence and leaves the issue in review state. If Linear writes are unavailable after evidence is proven, closer emits `REQUIRED_LINEAR_MUTATIONS` with the final closeout comment, dashboard update, `Done` status, and label cleanup.
 
 ## Plan Revision Rule
 

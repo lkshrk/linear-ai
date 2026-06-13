@@ -166,6 +166,17 @@ bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --des
 
 The gate requires `review_ready`, `llm-review`, passed verification, completed dashboard tasks, valid commit subjects with the issue ID, final destination, and workspace cleanup evidence. When `--commits` is provided, those subjects must match `status.commits`. When `--repo` is provided, linked worktrees whose path or branch includes the issue ID must be cleaned up or explicitly listed in `workspace_cleanup.kept`.
 
+## Closeout Gate
+
+Verify that a merged PR has enough evidence to close the Linear issue:
+
+```sh
+gh pr view <PR> --json url,state,isDraft,baseRefName,mergeCommit,statusCheckRollup,commits > pr.json
+bun scripts/verify_closeout.ts --issue-id CIV-999 --pr pr.json --repo . --base origin/main
+```
+
+The gate requires a merged PR, a merge commit, at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit.
+
 ## Linear Metadata Helper
 
 Capture a local metadata snapshot from Linear MCP read results:
@@ -181,13 +192,13 @@ Create those input files from current Linear MCP results:
 - `list_projects` output -> `linear-projects.json`
 - `list_issue_labels` output -> `linear-labels.json`
 
-The capture command accepts raw wrapper objects from those tools, direct arrays, or arrays of paginated wrapper objects. It prints warnings to stderr when required metadata groups are missing, for example when no Component labels exist.
+The capture command accepts raw wrapper objects from those tools, direct arrays, or arrays of paginated wrapper objects. It prints warnings to stderr when required metadata groups such as Type or LLM labels are missing.
 
 Validate local issue metadata against the captured snapshot:
 
 ```sh
 bun scripts/linear_metadata.ts summary --metadata metadata.json
-bun scripts/linear_metadata.ts validate --metadata metadata.json --target-team Civora --target-project "Public Beta" --component-tag Web --type-label Feature --llm-label llm-refine
+bun scripts/linear_metadata.ts validate --metadata metadata.json --target-team Civora --target-project "Public Beta" --selected-labels Web,Feature --type-label Feature --llm-label llm-refine
 ```
 
 Create the snapshot from current Linear MCP results. It should contain:
@@ -211,7 +222,7 @@ bun scripts/intake_issue.ts --metadata metadata.json INPUT.yaml
 bun scripts/intake_issue.ts --metadata examples/linear-metadata.json examples/intake-feature-input.yaml
 ```
 
-The input must include `target_team`, `target_project`, and `component_tag`; the metadata snapshot validates those values before output.
+The input must include `target_team` and `target_project`. Use `selected_labels` for proposed matching Linear labels/tags; the metadata snapshot validates those values before output.
 
 ## Marked Comment Extractor
 

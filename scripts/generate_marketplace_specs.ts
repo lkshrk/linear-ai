@@ -78,7 +78,7 @@ function claudeMarketplace(repository: string, version: string, claudeUrl?: stri
       {
         name: "linear-ai",
         source,
-        description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, and review handoff workflow skills.",
+        description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, review handoff, and post-merge closeout workflow skills.",
         version,
         author: {
           name: "Linear AI"

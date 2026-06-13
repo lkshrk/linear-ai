@@ -539,6 +539,60 @@ updated_by: linear-ai
   }
 });
 
+test("closeout verifier accepts merged PR with successful checks", async () => {
+  const pr = await withTempFile("linear-ai-closeout-pr-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "abc123" },
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" },
+      { name: "Dispatch release for release tag", status: "COMPLETED", conclusion: "SKIPPED" }
+    ]
+  }));
+  try {
+    const result = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", pr.file]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok closeout HCL-7/);
+  } finally {
+    await rm(pr.dir, { recursive: true, force: true });
+  }
+});
+
+test("closeout verifier rejects unmerged PRs and pending checks", async () => {
+  const unmerged = await withTempFile("linear-ai-closeout-unmerged-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "OPEN",
+    baseRefName: "main",
+    mergeCommit: null,
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  const pending = await withTempFile("linear-ai-closeout-pending-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "abc123" },
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "IN_PROGRESS", conclusion: "" }
+    ]
+  }));
+  try {
+    const unmergedResult = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", unmerged.file]);
+    const pendingResult = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", pending.file]);
+
+    assert.notEqual(unmergedResult.code, 0);
+    assert.match(unmergedResult.stderr, /PR state must be MERGED/);
+    assert.notEqual(pendingResult.code, 0);
+    assert.match(pendingResult.stderr, /check Test and package skills must be completed before closeout/);
+  } finally {
+    await rm(unmerged.dir, { recursive: true, force: true });
+    await rm(pending.dir, { recursive: true, force: true });
+  }
+});
+
 test("handoff verifier accepts review-ready dashboard from issue description", async () => {
   const status = await withTempFile("linear-ai-description-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml()));
   const description = await withTempFile("linear-ai-description-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
@@ -1318,6 +1372,7 @@ test("linear metadata helper summarizes and validates teams and labels", async (
     assert.deepEqual(parsed.teams, ["Civora", "H-cloud"]);
     assert.deepEqual(parsed.projects, ["Public Beta"]);
     assert.deepEqual(parsed.component_tags, ["API", "Web"]);
+    assert.deepEqual(parsed.labels, ["API", "Bug", "Web", "llm-refine"]);
 
     const valid = await runBun("linear_metadata.ts", [
       "validate",
@@ -1327,8 +1382,8 @@ test("linear metadata helper summarizes and validates teams and labels", async (
       "Civora",
       "--target-project",
       "Public Beta",
-      "--component-tag",
-      "Web",
+      "--selected-labels",
+      "Web,Bug,llm-refine",
       "--type-label",
       "Bug",
       "--llm-label",
@@ -1345,12 +1400,12 @@ test("linear metadata helper summarizes and validates teams and labels", async (
       "Civora",
       "--target-project",
       "Unknown Project",
-      "--component-tag",
+      "--selected-labels",
       "Mobile"
     ]);
     assert.notEqual(invalid.code, 0);
     assert.match(invalid.stderr, /target project Unknown Project is not an available Linear project/);
-    assert.match(invalid.stderr, /component tag Mobile is not an available Component label/);
+    assert.match(invalid.stderr, /selected label Mobile is not an available Linear label/);
   } finally {
     await rm(metadata.dir, { recursive: true, force: true });
   }
@@ -1413,7 +1468,6 @@ test("linear metadata helper captures raw Linear MCP list results", async () => 
       { name: "llm-refine", parent: "LLM" },
       { name: "llm-ready", parent: "LLM" }
     ]);
-    assert.match(result.stderr, /warning: no Component labels found/);
     assert.match(result.stderr, /warning: missing Type labels: Improvement/);
     assert.match(result.stderr, /warning: missing LLM labels: llm-active, llm-blocked, llm-review, llm-split/);
   } finally {
@@ -1429,6 +1483,7 @@ test("intake command renders issue body and metadata from validated Linear metad
     projects: [{ name: "Public Beta", teams: [{ name: "Civora" }] }],
     labels: [
       { name: "Web", parent: "Component" },
+      { name: "Integration", parent: "Workflow" },
       { name: "Feature", parent: "Type" },
       { name: "llm-refine", parent: "LLM" }
     ]
@@ -1437,7 +1492,9 @@ test("intake command renders issue body and metadata from validated Linear metad
 title: Show recent workflow runs
 target_team: Civora
 target_project: Public Beta
-component_tag: Web
+selected_labels:
+  - Web
+  - Integration
 add_llm_refine: true
 problem_opportunity: Operators cannot spot recent workflow failures quickly.
 desired_outcome: Overview shows recent runs and statuses.
@@ -1456,8 +1513,8 @@ evidence_links: []
     assert.match(parsed.issue_body, /# Show recent workflow runs/);
     assert.match(parsed.issue_body, /Target team: Civora/);
     assert.match(parsed.issue_body, /Target project: Public Beta/);
-    assert.match(parsed.issue_body, /Component tag: Web/);
-    assert.deepEqual(parsed.metadata.labels_to_apply, ["Feature", "Web", "llm-refine"]);
+    assert.match(parsed.issue_body, /Suggested labels: Web, Integration/);
+    assert.deepEqual(parsed.metadata.labels_to_apply, ["Feature", "Web", "Integration", "llm-refine"]);
     assert.equal(parsed.metadata.target_team, "Civora");
     assert.equal(parsed.metadata.target_project, "Public Beta");
   } finally {

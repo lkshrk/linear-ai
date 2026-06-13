@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Close"
+  short_description: "Close merged Linear issues with evidence."
+  default_prompt: "Use $linear-close to verify merged PR evidence and close this Linear issue."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for issue reads, final dashboard/status updates, comments, and labels."
+policy:
+  allow_implicit_invocation: true

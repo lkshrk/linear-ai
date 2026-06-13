@@ -7,7 +7,7 @@ It gives agents a repeatable path for one issue:
 1. Create or clean up the Linear issue.
 2. Refine it into an implementation-ready plan.
 3. Track progress in one dashboard block in the issue description.
-4. Implement, verify, and hand off for review.
+4. Implement, verify, hand off for review, and close after merge.
 
 ## Install
 
@@ -68,7 +68,8 @@ codex mcp login linear
 - `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.
 - `linear-refine` - interview, clarify, and write a ready implementation plan.
 - `linear-implement` - execute a ready plan, update progress, verify, and prepare review.
-- `linear-deliver-feature` - run the full create/refine/implement/review workflow.
+- `linear-close` - verify merged PR evidence and close the Linear issue after review.
+- `linear-deliver-feature` - run the full create/refine/implement/review/closeout workflow.
 - `linear-status` - inspect an issue and recommend the next workflow step.
 - `linear-doctor` - check required Linear teams, projects, and labels.
 
@@ -83,7 +84,7 @@ Use linear-status to inspect HCL-123 and tell me the current phase.
 Prepare an issue:
 
 ```text
-Use linear-create-issue for this feature idea. Query available teams, projects, and component labels first.
+Use linear-create-issue for this feature idea. Query available teams, projects, and Linear labels first; propose matching tags and ask whether to add more.
 ```
 
 Refine a plan:
@@ -96,6 +97,12 @@ Deliver a feature:
 
 ```text
 Use linear-deliver-feature on HCL-123. Keep Linear updated with the issue description dashboard and status comments.
+```
+
+Close a merged issue:
+
+```text
+Use linear-close on HCL-123 after the PR is merged.
 ```
 
 ## Local Development

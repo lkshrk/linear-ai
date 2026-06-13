@@ -7,7 +7,8 @@ Prefer the plugin skill names when available:
 - `linear-create-issue` for issue intake.
 - `linear-refine` for questioner/planning.
 - `linear-implement` for implementation.
-- `linear-deliver-feature` for the combined create/refine/implement/review workflow.
+- `linear-close` for post-merge closeout.
+- `linear-deliver-feature` for the combined create/refine/implement/review/closeout workflow.
 
 ## Shared Invocation Pattern
 
@@ -89,6 +90,29 @@ Expected output:
 - applied Linear changes, or `REQUIRED_LINEAR_MUTATIONS` if writes are unavailable
 
 Do not use implementer without a ready plan.
+
+## Closer
+
+Use `agents/closer.md`.
+
+Use when:
+
+- an issue has `llm-review`
+- the implementation PR has been merged
+- Linear still needs final Done/status/comment/label cleanup
+
+Expected output:
+
+- merge evidence
+- CI evidence
+- mainline containment evidence
+- final marked closeout/status comment
+- issue moved to `Done`
+- all `llm-*` labels removed
+- cumulative `sp-*` labels preserved
+- applied Linear changes, or `REQUIRED_LINEAR_MUTATIONS` if writes are unavailable
+
+Do not use closer to merge PRs or implement code.
 
 ## Orchestrator
 
