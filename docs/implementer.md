@@ -32,6 +32,8 @@ Optional:
 - Never guess product behavior, API shape, UX, data migration, security behavior, or acceptance criteria.
 - Before code changes, turn the ready Linear plan into a repo-local TDD implementation plan.
 - Prefer Superpowers-style planning: exact files, failing tests first, minimal implementation, verification commands, and small commits.
+- No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
+- The dashboard task list uses stable ready-plan task IDs, CLI-style state symbols, and `last_checked` evidence from repo/worktree/verification inspection.
 - Use subagents heavily for independent investigation, implementation, review, and verification lanes.
 - Parallelize independent checklist items whenever they can be isolated without shared-file conflicts.
 - Prefer git worktree isolation for parallel code-changing subagents so each lane can run tests and edits independently.
@@ -161,7 +163,7 @@ Do not claim review-ready while temporary workspaces or worktrees are left unexp
 Before applying `llm-review` or marking the PR ready, run:
 
 ```sh
-scripts/verify_handoff.ts --issue-id <ISSUE-ID> --status <status-comment-file> --dashboard <dashboard-comment-file>
+scripts/verify_handoff.ts --issue-id <ISSUE-ID> --status <status-comment-file> --description <issue-description-file>
 ```
 
 If the gate fails, fix the failed evidence instead of overriding it.

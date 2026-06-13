@@ -1,13 +1,14 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: linear-ai.dashboard.v1
-title: Linear AI Dashboard Comment
-# Contract: one dashboard comment per issue with a human task list and emoji state markers.
+title: Linear AI Dashboard
+# Contract: one dashboard block per issue description with a human CLI-style task list and machine-readable task state.
 type: object
 additionalProperties: false
 required:
   - schema
   - issue_id
   - dashboard_revision
+  - plan_revision
   - current_phase
   - llm_state
   - sp_phases
@@ -22,6 +23,9 @@ properties:
     type: string
     minLength: 1
   dashboard_revision:
+    type: integer
+    minimum: 1
+  plan_revision:
     type: integer
     minimum: 1
   current_phase:
@@ -45,31 +49,38 @@ properties:
       required:
         - id
         - state
-        - emoji
+        - symbol
         - title
         - evidence
+        - last_checked
       properties:
         id:
           type: string
           minLength: 1
         state:
           enum:
-            - done
-            - in_progress
-            - blocked
-            - deferred
             - todo
-        emoji:
+            - active
+            - blocked
+            - done
+            - skipped
+            - deferred
+        symbol:
           enum:
-            - "✅"
-            - "🔄"
-            - "⏸️"
-            - "⬜"
+            - "□"
+            - "●"
+            - "■"
+            - "✓"
+            - "-"
+            - "…"
         title:
           type: string
           minLength: 1
         evidence:
           type: string
+        last_checked:
+          type: string
+          minLength: 1
   blockers:
     type: array
     items:

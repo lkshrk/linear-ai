@@ -1,4 +1,7 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import Ajv2020, { type ValidateFunction } from "ajv/dist/2020";
 import YAML from "yaml";
 
 const PLAN_START = /<!--\s*linear-ai:plan v1\b.*?-->/s;
@@ -7,8 +10,21 @@ const STATUS_START = /<!--\s*linear-ai:status v1\b.*?-->/s;
 const STATUS_END = /<!--\s*\/linear-ai:status\s*-->/s;
 const DASHBOARD_START = /<!--\s*linear-ai:dashboard v1\b.*?-->/s;
 const DASHBOARD_END = /<!--\s*\/linear-ai:dashboard\s*-->/s;
+const PLAN_BLOCK = /<!--\s*linear-ai:plan v1\b.*?-->.*?<!--\s*\/linear-ai:plan\s*-->/gs;
+const DASHBOARD_BLOCK = /<!--\s*linear-ai:dashboard v1\b.*?-->.*?<!--\s*\/linear-ai:dashboard\s*-->/gs;
 const YAML_BLOCK = /```yaml\n(.*?)```/s;
 const LLM_STATE_LABELS = ["llm-refine", "llm-ready", "llm-active", "llm-blocked", "llm-review", "llm-split"];
+const DASHBOARD_TASK_STATES = ["todo", "active", "blocked", "done", "skipped", "deferred"];
+const USAGE = "usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] [--description issue-description.md] FILE [FILE...]";
+const DASHBOARD_TASK_SYMBOLS: Record<string, string> = {
+  todo: "□",
+  active: "●",
+  blocked: "■",
+  done: "✓",
+  skipped: "-",
+  deferred: "…"
+};
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 class ValidationError extends Error {}
 
@@ -16,6 +32,19 @@ type Mapping = Record<string, unknown>;
 type ValidatorOptions = {
   knownLabels?: Set<string>;
 };
+type ValidateFileOptions = ValidatorOptions & {
+  allowDashboardComment?: boolean;
+};
+type SchemaKind = "plan" | "status" | "dashboard";
+
+const SCHEMA_FILES: Record<SchemaKind, string> = {
+  plan: "linear-ai.plan.v1.schema.yaml",
+  status: "linear-ai.status.v1.schema.yaml",
+  dashboard: "linear-ai.dashboard.v1.schema.yaml"
+};
+
+const ajv = new Ajv2020({ allErrors: true });
+const schemaValidators = new Map<SchemaKind, ValidateFunction>();
 
 function isMapping(value: unknown): value is Mapping {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -33,6 +62,12 @@ function extractBlock(content: string, startMarker: RegExp, endMarker: RegExp, k
   return yamlMatch[1];
 }
 
+function extractYamlFromMarkedBlock(block: string, kind: string): string {
+  const yamlMatch = block.match(YAML_BLOCK);
+  if (!yamlMatch) throw new ValidationError(`missing ${kind} fenced YAML block`);
+  return yamlMatch[1];
+}
+
 function loadYaml(yamlText: string, kind: string): Mapping {
   try {
     const data = YAML.parse(yamlText);
@@ -42,6 +77,31 @@ function loadYaml(yamlText: string, kind: string): Mapping {
     if (error instanceof ValidationError) throw error;
     throw new ValidationError(`invalid ${kind} YAML: ${(error as Error).message}`);
   }
+}
+
+function formatSchemaErrors(validate: ValidateFunction, kind: SchemaKind): string {
+  const errors = validate.errors ?? [];
+  return errors.map((error) => {
+    const location = error.instancePath || "/";
+    const property = typeof error.params.additionalProperty === "string" ? ` ${error.params.additionalProperty}` : "";
+    return `${kind}${location}${property} ${error.message ?? "is invalid"}`;
+  }).join("; ");
+}
+
+async function schemaValidator(kind: SchemaKind): Promise<ValidateFunction> {
+  const cached = schemaValidators.get(kind);
+  if (cached) return cached;
+
+  const schemaPath = path.join(ROOT, "schemas", SCHEMA_FILES[kind]);
+  const schema = loadYaml(await readFile(schemaPath, "utf8"), `${kind} schema`);
+  const validate = ajv.compile(schema);
+  schemaValidators.set(kind, validate);
+  return validate;
+}
+
+async function validateSchema(data: Mapping, kind: SchemaKind): Promise<void> {
+  const validate = await schemaValidator(kind);
+  if (!validate(data)) throw new ValidationError(formatSchemaErrors(validate, kind));
 }
 
 function requireFields(data: Mapping, fields: string[]): void {
@@ -211,11 +271,12 @@ function validateStatus(data: Mapping, options: ValidatorOptions = {}): void {
   requireItemFields(cleanup.kept, "workspace_cleanup.kept", ["path", "branch", "owner", "reason"]);
 }
 
-function validateDashboard(data: Mapping): void {
+function validateDashboard(data: Mapping, latestReadyPlan?: Mapping): void {
   requireFields(data, [
     "schema",
     "issue_id",
     "dashboard_revision",
+    "plan_revision",
     "current_phase",
     "llm_state",
     "sp_phases",
@@ -229,39 +290,98 @@ function validateDashboard(data: Mapping): void {
   if (!Number.isInteger(data.dashboard_revision) || Number(data.dashboard_revision) <= 0) {
     throw new ValidationError("dashboard_revision must be a positive integer");
   }
+  if (!Number.isInteger(data.plan_revision) || Number(data.plan_revision) <= 0) {
+    throw new ValidationError("plan_revision must be a positive integer");
+  }
 
   const spPhases = requireArray(data, "sp_phases");
   for (const [index, phase] of spPhases.entries()) {
     if (typeof phase !== "string" || !phase.startsWith("sp-")) throw new ValidationError(`sp_phases[${index}] must start with sp-`);
   }
 
-  const tasks = requireItemFields(requireArray(data, "tasks", 1), "tasks", ["id", "state", "emoji", "title", "evidence"]);
-  requireItemEnum(tasks, "tasks", "state", ["done", "in_progress", "blocked", "deferred", "todo"]);
-  requireItemEnum(tasks, "tasks", "emoji", ["✅", "🔄", "⏸️", "⬜"]);
+  const tasks = requireItemFields(requireArray(data, "tasks", 1), "tasks", ["id", "state", "symbol", "title", "evidence", "last_checked"]);
+  requireItemEnum(tasks, "tasks", "state", DASHBOARD_TASK_STATES);
+  tasks.forEach((task, index) => {
+    const state = String(task.state);
+    if (task.symbol !== DASHBOARD_TASK_SYMBOLS[state]) throw new ValidationError(`tasks[${index}].symbol is invalid for ${state}`);
+    if (typeof task.last_checked !== "string" || task.last_checked.length === 0) {
+      throw new ValidationError(`tasks[${index}].last_checked is required`);
+    }
+  });
+  const taskIds = tasks.map((task) => String(task.id));
+  if (new Set(taskIds).size !== taskIds.length) throw new ValidationError("dashboard task ids must be unique");
+
+  if (latestReadyPlan) {
+    const revision = latestReadyPlan.revision;
+    if (data.plan_revision !== revision) throw new ValidationError(`dashboard plan_revision must match latest ready plan revision ${revision}`);
+    const planItems = requireMappingItems(requireArray(latestReadyPlan, "implementation_checklist", 1), "implementation_checklist");
+    const planIds = new Set(planItems.map((item) => String(item.id)));
+    for (const taskId of taskIds) {
+      if (!planIds.has(taskId)) throw new ValidationError(`dashboard task id ${taskId} is not in latest ready plan`);
+    }
+    for (const planId of planIds) {
+      if (!taskIds.includes(planId)) throw new ValidationError(`latest ready plan task id ${planId} is missing from dashboard`);
+    }
+  }
   requireArray(data, "blockers");
   if (typeof data.next_step !== "string" || data.next_step.length === 0) throw new ValidationError("next_step is required");
   if (typeof data.updated_by !== "string" || data.updated_by.length === 0) throw new ValidationError("updated_by is required");
 }
 
-async function validateFile(path: string, options: ValidatorOptions = {}): Promise<string> {
+async function latestReadyPlan(content: string, options: ValidatorOptions = {}): Promise<Mapping | undefined> {
+  let latest: Mapping | undefined;
+  for (const match of content.matchAll(PLAN_BLOCK)) {
+    const data = loadYaml(extractYamlFromMarkedBlock(match[0], "plan"), "plan");
+    await validateSchema(data, "plan");
+    validatePlan(data, options);
+    if (data.plan_status === "ready") latest = data;
+  }
+  return latest;
+}
+
+async function validateDescription(path: string, options: ValidatorOptions = {}): Promise<{ message?: string; hasDashboard: boolean }> {
   const content = await readFile(path, "utf8");
+  const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
+  if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard blocks found in issue description");
+  if (dashboardMatches.length === 0) return { hasDashboard: false };
+
+  const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
+  const data = loadYaml(yaml, "dashboard");
+  await validateSchema(data, "dashboard");
+  validateDashboard(data, await latestReadyPlan(content, options));
+  return { message: `ok ${path} dashboard-description`, hasDashboard: true };
+}
+
+async function validateFile(path: string, options: ValidateFileOptions = {}): Promise<string> {
+  const content = await readFile(path, "utf8");
+  const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
+  if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard comments found");
+  if (dashboardMatches.length === 1 && options.allowDashboardComment === false) {
+    throw new ValidationError("dashboard comments are fallback-only when description dashboard exists");
+  }
+
+  if (dashboardMatches.length === 1) {
+    const yaml = extractYamlFromMarkedBlock(dashboardMatches[0][0], "dashboard");
+    const data = loadYaml(yaml, "dashboard");
+    await validateSchema(data, "dashboard");
+    validateDashboard(data, await latestReadyPlan(content, options));
+    return `ok ${path} dashboard`;
+  }
 
   if (PLAN_START.test(content)) {
     const yaml = extractBlock(content, PLAN_START, PLAN_END, "plan");
-    validatePlan(loadYaml(yaml, "plan"), options);
+    const data = loadYaml(yaml, "plan");
+    await validateSchema(data, "plan");
+    validatePlan(data, options);
     return `ok ${path} plan`;
   }
 
   if (STATUS_START.test(content)) {
     const yaml = extractBlock(content, STATUS_START, STATUS_END, "status");
-    validateStatus(loadYaml(yaml, "status"), options);
+    const data = loadYaml(yaml, "status");
+    await validateSchema(data, "status");
+    validateStatus(data, options);
     return `ok ${path} status`;
-  }
-
-  if (DASHBOARD_START.test(content)) {
-    const yaml = extractBlock(content, DASHBOARD_START, DASHBOARD_END, "dashboard");
-    validateDashboard(loadYaml(yaml, "dashboard"));
-    return `ok ${path} dashboard`;
   }
 
   throw new ValidationError("no linear-ai marked comment found");
@@ -280,9 +400,10 @@ async function loadKnownLabels(path: string): Promise<Set<string>> {
   );
 }
 
-async function parseArgs(argv: string[]): Promise<{ files: string[]; options: ValidatorOptions }> {
+async function parseArgs(argv: string[]): Promise<{ files: string[]; options: ValidatorOptions; descriptionPath?: string }> {
   const files: string[] = [];
   const options: ValidatorOptions = {};
+  let descriptionPath: string | undefined;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -291,30 +412,46 @@ async function parseArgs(argv: string[]): Promise<{ files: string[]; options: Va
       if (!metadataPath) throw new ValidationError("--metadata requires a path");
       options.knownLabels = await loadKnownLabels(metadataPath);
       index += 1;
+    } else if (arg === "--description") {
+      descriptionPath = argv[index + 1];
+      if (!descriptionPath) throw new ValidationError("--description requires a path");
+      index += 1;
     } else {
       files.push(arg);
     }
   }
 
-  return { files, options };
+  return { files, options, descriptionPath };
 }
 
 async function main(argv: string[]): Promise<number> {
   if (argv.length === 0) {
-    console.error("usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]");
+    console.error(USAGE);
     return 2;
   }
 
-  const { files, options } = await parseArgs(argv);
-  if (files.length === 0) {
-    console.error("usage: bun scripts/validate_marked_comments.ts [--metadata metadata.json] FILE [FILE...]");
+  const { files, options, descriptionPath } = await parseArgs(argv);
+  if (files.length === 0 && !descriptionPath) {
+    console.error(USAGE);
     return 2;
   }
 
   let failures = 0;
+  let descriptionHasDashboard = false;
+  if (descriptionPath) {
+    try {
+      const result = await validateDescription(descriptionPath, options);
+      descriptionHasDashboard = result.hasDashboard;
+      if (result.message) console.log(result.message);
+    } catch (error) {
+      failures += 1;
+      console.error(`${descriptionPath}: ${(error as Error).message}`);
+    }
+  }
+
   for (const path of files) {
     try {
-      console.log(await validateFile(path, options));
+      console.log(await validateFile(path, { ...options, allowDashboardComment: !descriptionHasDashboard }));
     } catch (error) {
       failures += 1;
       console.error(`${path}: ${(error as Error).message}`);

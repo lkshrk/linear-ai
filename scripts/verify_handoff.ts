@@ -35,6 +35,13 @@ function extractYaml(content: string, startMarker: RegExp, endMarker: RegExp, ki
   return parsed;
 }
 
+function extractOptionalYaml(content: string, startMarker: RegExp, endMarker: RegExp, kind: string): Mapping | undefined {
+  const hasStart = startMarker.test(content);
+  const hasEnd = endMarker.test(content);
+  if (!hasStart && !hasEnd) return undefined;
+  return extractYaml(content, startMarker, endMarker, kind);
+}
+
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
@@ -155,14 +162,25 @@ function validateDashboard(dashboard: Mapping, issueId: string): void {
   const tasks = Array.isArray(dashboard.tasks) ? dashboard.tasks : [];
   if (tasks.length === 0) throw new HandoffError("dashboard tasks are required");
   for (const [index, task] of tasks.entries()) {
-    if (!isMapping(task) || task.state !== "done" || task.emoji !== "✅") {
-      throw new HandoffError(`dashboard tasks[${index}] must be done with ✅`);
+    if (!isMapping(task) || task.state !== "done" || task.symbol !== "✓") {
+      throw new HandoffError(`dashboard tasks[${index}] must be done with ✓`);
+    }
+    if (typeof task.last_checked !== "string" || task.last_checked.length === 0) {
+      throw new HandoffError(`dashboard tasks[${index}].last_checked is required`);
     }
   }
   if (stringArray(dashboard.blockers).length > 0) throw new HandoffError("dashboard blockers must be empty");
 }
 
-function parseArgs(argv: string[]): { issueId: string; statusPath: string; dashboardPath: string; commitsPath?: string; maxCommits: number; repoPath?: string } {
+function parseArgs(argv: string[]): {
+  issueId: string;
+  statusPath: string;
+  dashboardPath?: string;
+  descriptionPath?: string;
+  commitsPath?: string;
+  maxCommits: number;
+  repoPath?: string;
+} {
   const args = new Map<string, string>();
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
@@ -176,19 +194,27 @@ function parseArgs(argv: string[]): { issueId: string; statusPath: string; dashb
   const issueId = args.get("--issue-id");
   const statusPath = args.get("--status");
   const dashboardPath = args.get("--dashboard");
+  const descriptionPath = args.get("--description");
   const maxCommits = Number(args.get("--max-commits") ?? DEFAULT_MAX_COMMITS);
   if (!Number.isInteger(maxCommits) || maxCommits <= 0) throw new HandoffError("--max-commits must be a positive integer");
-  if (!issueId || !statusPath || !dashboardPath) {
-    throw new HandoffError("usage: bun scripts/verify_handoff.ts --issue-id ISSUE-ID --status status.md --dashboard dashboard.md [--commits commits.txt] [--repo path] [--max-commits N]");
+  if (!issueId || !statusPath || (!dashboardPath && !descriptionPath)) {
+    throw new HandoffError("usage: bun scripts/verify_handoff.ts --issue-id ISSUE-ID --status status.md (--description issue.md | --dashboard dashboard.md) [--commits commits.txt] [--repo path] [--max-commits N]");
   }
-  return { issueId, statusPath, dashboardPath, commitsPath: args.get("--commits"), maxCommits, repoPath: args.get("--repo") };
+  return { issueId, statusPath, dashboardPath, descriptionPath, commitsPath: args.get("--commits"), maxCommits, repoPath: args.get("--repo") };
 }
 
 async function main(argv: string[]): Promise<number> {
   try {
     const args = parseArgs(argv);
     const status = extractYaml(await readFile(args.statusPath, "utf8"), STATUS_START, STATUS_END, "status");
-    const dashboard = extractYaml(await readFile(args.dashboardPath, "utf8"), DASHBOARD_START, DASHBOARD_END, "dashboard");
+    let dashboard: Mapping | undefined;
+    if (args.descriptionPath) {
+      dashboard = extractOptionalYaml(await readFile(args.descriptionPath, "utf8"), DASHBOARD_START, DASHBOARD_END, "dashboard");
+    }
+    if (!dashboard && args.dashboardPath) {
+      dashboard = extractYaml(await readFile(args.dashboardPath, "utf8"), DASHBOARD_START, DASHBOARD_END, "dashboard");
+    }
+    if (!dashboard) throw new HandoffError("missing dashboard in issue description and no fallback dashboard comment was provided");
     validateStatus(status, args.issueId);
     validateDashboard(dashboard, args.issueId);
     const statusSubjects = commitSubjectsFromStatus(status);

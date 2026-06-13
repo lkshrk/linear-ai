@@ -4,6 +4,7 @@
 schema: linear-ai.dashboard.v1
 issue_id: CIV-999
 dashboard_revision: 1
+plan_revision: 1
 current_phase: review-handoff
 llm_state: llm-review
 sp_phases:
@@ -14,9 +15,10 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Add review handoff gate
     evidence: scripts/verify_handoff.ts
+    last_checked: bun scripts/verify_handoff.ts --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
 blockers: []
 next_step: Review PR.
 updated_by: linear-ai
@@ -26,7 +28,7 @@ updated_by: linear-ai
 
 Current phase: review-handoff
 
-- ✅ `T1` Add review handoff gate
+- ✓ `T1` done: Add review handoff gate
 
 ## Blockers
 

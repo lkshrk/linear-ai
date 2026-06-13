@@ -10,6 +10,7 @@ Use the repository root as the workflow source. Read and follow:
 - `agents/questioner.md`
 - `docs/questioner.md`
 - `docs/agent-required-passes.md`
+- `docs/superpowers-linear-persistence.md`
 - `templates/linear-plan-comment.md`
 - `schemas/linear-ai.plan.v1.schema.yaml`
 

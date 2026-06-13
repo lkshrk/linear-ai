@@ -1,6 +1,6 @@
-# Linear Dashboard Comment Template
+# Linear Dashboard Description Template
 
-Copy this into one Linear issue comment and update that one dashboard comment as progress changes.
+Copy this marked block into the Linear issue description and update only this block as progress changes. Preserve any human-authored description text outside the markers.
 
 ````markdown
 <!-- linear-ai:dashboard v1 issue=TEAM-123 dashboard_rev=1 -->
@@ -9,6 +9,7 @@ Copy this into one Linear issue comment and update that one dashboard comment as
 schema: linear-ai.dashboard.v1
 issue_id: TEAM-123
 dashboard_revision: 1
+plan_revision: 1
 current_phase: implement
 llm_state: llm-active
 sp_phases:
@@ -18,19 +19,22 @@ sp_phases:
 tasks:
   - id: T1
     state: done
-    emoji: "✅"
+    symbol: "✓"
     title: Wire dashboard validator
     evidence: scripts/validate_marked_comments.ts
+    last_checked: bun scripts/validate_marked_comments.ts templates/linear-dashboard-comment.md
   - id: T2
-    state: in_progress
-    emoji: "🔄"
+    state: active
+    symbol: "●"
     title: Update implementer skill
     evidence: skills/linear-implement/SKILL.md
+    last_checked: repo inspection
   - id: T3
     state: todo
-    emoji: "⬜"
+    symbol: "□"
     title: Run full verification
     evidence: ""
+    last_checked: latest ready plan
 blockers: []
 next_step: Finish implementation and run verification.
 updated_by: linear-ai
@@ -40,9 +44,9 @@ updated_by: linear-ai
 
 Current phase: implement
 
-- ✅ `T1` Wire dashboard validator
-- 🔄 `T2` Update implementer skill
-- ⬜ `T3` Run full verification
+- ✓ `T1` done: Wire dashboard validator
+- ● `T2` active: Update implementer skill
+- □ `T3` todo: Run full verification
 
 ## Blockers
 
@@ -58,6 +62,9 @@ Finish implementation and run verification.
 ## Validity Rules
 
 - YAML should match `schemas/linear-ai.dashboard.v1.schema.yaml`.
-- There should be one dashboard comment per issue.
-- The task list must use emoji state markers and match the machine-readable `tasks` list.
+- There should be one dashboard block in the issue description.
+- Dashboard comments are fallback-only when description writes are unavailable.
+- The task list must use CLI-style state symbols and match the machine-readable `tasks` list.
+- Task IDs must match the latest ready plan checklist IDs when a plan is available.
+- `last_checked` records the repo, worktree, plan, status, PR, or verification evidence used for dashboard repair.
 - Update this dashboard after each task state change.
