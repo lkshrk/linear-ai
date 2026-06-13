@@ -89,12 +89,12 @@ async function main(): Promise<number> {
   }
 
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:smoke", "marketplace:smoke:node", "release:create", "release:create:node", "release:check", "release:check:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
+  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:publish", "marketplace:publish:node", "marketplace:smoke", "marketplace:smoke:node", "release:create", "release:create:node", "release:check", "release:check:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
   }
 
   const marketplaceDoc = await readFile(path.join(ROOT, "docs/marketplace.md"), "utf8");
-  for (const required of ["lkshrk/agent-marketplace", "codex plugin marketplace add", "claude plugin marketplace add", "plugins/linear-ai"]) {
+  for (const required of ["lkshrk/agent-marketplace", "codex plugin marketplace add", "claude plugin marketplace add", "source.url/ref"]) {
     if (!marketplaceDoc.includes(required)) errors.push(`docs/marketplace.md must mention ${required}`);
   }
 

@@ -25,7 +25,7 @@ Create a separate marketplace repository, for example:
 lkshrk/agent-marketplace
 ```
 
-That repository should contain marketplace metadata and plugin release snapshots. This lets users configure one stable marketplace source and then install/update plugins from it.
+That repository should contain marketplace metadata only. This lets users configure one stable marketplace source and then install/update plugins from released source repositories.
 
 Generate the marketplace files from this repository:
 
@@ -39,11 +39,12 @@ Publish the generated files into the marketplace repository:
 dist/marketplace/
 ├── .agents/plugins/marketplace.json
 ├── .claude-plugin/marketplace.json
-├── plugins/linear-ai/
 └── README.md
 ```
 
-Codex can install from the canonical released git source referenced by `.agents/plugins/marketplace.json`. Claude Code validates plugin sources as relative marketplace paths, so the generated marketplace includes a `plugins/linear-ai` snapshot for Claude.
+Both Codex and Claude Code install from the canonical released git source referenced by the marketplace manifests. Marketplace plugin entries use `source.url/ref`; do not vendor `linear-ai` under the marketplace repository.
+
+The source release workflow updates this marketplace after creating a GitHub release. Configure `MARKETPLACE_PUSH_TOKEN` in the `linear-ai` repository with write access to `lkshrk/agent-marketplace`; the default `GITHUB_TOKEN` is scoped to the source repository and cannot push to the marketplace repository.
 
 ## Codex Install From Marketplace
 
@@ -74,9 +75,7 @@ On a new `linear-ai` release:
 
    Use `--dry-run` to preview the target version. Use `--push` to push the release commit and tag after local checks pass.
 2. Wait for source CI and release workflow to pass.
-3. Generate marketplace specs for the released version.
-4. Open a PR against the marketplace repository.
-5. Marketplace CI validates Codex and Claude Code can install `linear-ai` from the updated manifests.
-6. Merge the marketplace PR after validation.
+3. The release workflow generates marketplace metadata and pushes it to `lkshrk/agent-marketplace`.
+4. Marketplace CI validates Codex and Claude Code can install `linear-ai` from the updated manifests.
 
 Do not make every plugin source repository double as a marketplace. Keep marketplace metadata centralized, like a Homebrew tap.

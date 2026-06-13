@@ -38,7 +38,9 @@ async function main(): Promise<number> {
       "--out-dir",
       marketplace,
       "--codex-url",
-      ROOT
+      ROOT,
+      "--claude-url",
+      `file://${ROOT}`
     ]);
     await mkdir(codexHome, { recursive: true });
     await mkdir(claudeHome, { recursive: true });

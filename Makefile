@@ -1,4 +1,4 @@
-.PHONY: test validate render-examples metadata-summary marketplace-generate marketplace-smoke release-check release-create verify-handoff self-review install-smoke skills-smoke
+.PHONY: test validate render-examples metadata-summary marketplace-generate marketplace-publish marketplace-smoke release-check release-create verify-handoff self-review install-smoke skills-smoke
 
 test:
 	bun test
@@ -15,6 +15,9 @@ metadata-summary:
 
 marketplace-generate:
 	bun scripts/generate_marketplace_specs.ts --version package
+
+marketplace-publish:
+	bun scripts/publish_marketplace.ts $(if $(PUSH),--push,)
 
 marketplace-smoke:
 	bun scripts/marketplace_smoke.ts

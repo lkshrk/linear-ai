@@ -114,3 +114,17 @@ jobs:
             --verify-tag \
             --title "linear-ai $TAG" \
             --notes-file release-notes.md
+
+      - name: Publish marketplace metadata
+        env:
+          MARKETPLACE_PUSH_TOKEN: ${{ secrets.MARKETPLACE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MARKETPLACE_PUSH_TOKEN" ]; then
+            echo "MARKETPLACE_PUSH_TOKEN secret is required to update lkshrk/agent-marketplace" >&2
+            exit 1
+          fi
+          bun scripts/publish_marketplace.ts \
+            --version "$TAG" \
+            --marketplace-repo "https://x-access-token:${MARKETPLACE_PUSH_TOKEN}@github.com/lkshrk/agent-marketplace.git" \
+            --push

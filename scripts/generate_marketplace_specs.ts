@@ -1,26 +1,12 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DEFAULT_OUT_DIR = "dist/marketplace";
 const DEFAULT_REPOSITORY = "lkshrk/linear-ai";
 
-const SNAPSHOT_PATHS = [
-  ".claude-plugin",
-  ".codex-plugin",
-  "LICENSE",
-  "README.md",
-  "agents",
-  "docs",
-  "examples",
-  "package.json",
-  "schemas",
-  "scripts",
-  "skills",
-  "templates"
-];
-
 type Args = {
+  claudeUrl?: string;
   codexUrl?: string;
   outDir: string;
   repository: string;
@@ -38,6 +24,7 @@ function parseArgs(argv: string[]): Args {
     index += 1;
   }
   return {
+    claudeUrl: args.get("--claude-url"),
     codexUrl: args.get("--codex-url"),
     outDir: args.get("--out-dir") ?? DEFAULT_OUT_DIR,
     repository: args.get("--repository") ?? DEFAULT_REPOSITORY,
@@ -74,7 +61,10 @@ function codexMarketplace(repository: string, version: string, codexUrl?: string
   };
 }
 
-function claudeMarketplace(version: string): object {
+function claudeMarketplace(repository: string, version: string, claudeUrl?: string): object {
+  const source = claudeUrl
+    ? { source: "url", url: claudeUrl }
+    : { source: "url", url: `https://github.com/${repository}.git`, ref: `v${version}` };
   return {
     name: "linear-ai",
     owner: {
@@ -87,7 +77,7 @@ function claudeMarketplace(version: string): object {
     plugins: [
       {
         name: "linear-ai",
-        source: "./plugins/linear-ai",
+        source,
         description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, and review handoff workflow skills.",
         version,
         author: {
@@ -104,6 +94,8 @@ function marketplaceReadme(repository: string, version: string): string {
   return `# Linear AI Marketplace
 
 Marketplace metadata for \`${repository}@v${version}\`.
+
+This repository is an index-only agent marketplace. Plugin manifests point at released source repositories by git URL and tag; plugin source code is not vendored here.
 
 ## Codex
 
@@ -125,18 +117,6 @@ async function writeJson(filePath: string, value: object): Promise<void> {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-async function copySnapshot(outDir: string): Promise<void> {
-  const pluginDir = path.join(outDir, "plugins", "linear-ai");
-  await mkdir(pluginDir, { recursive: true });
-  for (const relativePath of SNAPSHOT_PATHS) {
-    await cp(path.join(ROOT, relativePath), path.join(pluginDir, relativePath), {
-      recursive: true,
-      dereference: true,
-      force: true
-    });
-  }
-}
-
 async function main(argv: string[]): Promise<number> {
   try {
     const args = parseArgs(argv);
@@ -145,10 +125,9 @@ async function main(argv: string[]): Promise<number> {
     await rm(outDir, { recursive: true, force: true });
     await mkdir(path.join(outDir, ".agents", "plugins"), { recursive: true });
     await mkdir(path.join(outDir, ".claude-plugin"), { recursive: true });
-    await copySnapshot(outDir);
 
     await writeJson(path.join(outDir, ".agents", "plugins", "marketplace.json"), codexMarketplace(args.repository, version, args.codexUrl));
-    await writeJson(path.join(outDir, ".claude-plugin", "marketplace.json"), claudeMarketplace(version));
+    await writeJson(path.join(outDir, ".claude-plugin", "marketplace.json"), claudeMarketplace(args.repository, version, args.claudeUrl));
     await writeFile(path.join(outDir, "README.md"), marketplaceReadme(args.repository, version));
 
     process.stdout.write(`ok marketplace specs ${args.repository}@v${version} -> ${path.relative(ROOT, outDir)}\n`);

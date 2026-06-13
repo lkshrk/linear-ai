@@ -61,11 +61,19 @@ Render sample bug/feature issue bodies:
 make render-examples
 ```
 
-Generate a tap-style marketplace repository snapshot for Codex and Claude Code:
+Generate tap-style marketplace metadata for Codex and Claude Code:
 
 ```sh
 make marketplace-generate
 bun scripts/generate_marketplace_specs.ts --repository lkshrk/linear-ai --version package --out-dir dist/marketplace
+```
+
+Publish generated metadata to the marketplace repository. This clones the marketplace, replaces metadata files, removes any vendored `plugins/` payload, commits when there are changes, and pushes only with `--push`.
+
+```sh
+bun scripts/publish_marketplace.ts --version v0.5.1
+bun scripts/publish_marketplace.ts --version v0.5.1 --push
+make marketplace-publish PUSH=1
 ```
 
 Verify generated marketplace installability in isolated Codex and Claude Code homes:

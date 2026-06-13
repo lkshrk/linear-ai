@@ -66,27 +66,26 @@ async function verifyMarketplace(errors: string[], marketplaceDir: string, versi
   const base = path.resolve(ROOT, marketplaceDir);
   const codexPath = path.join(base, ".agents", "plugins", "marketplace.json");
   const claudePath = path.join(base, ".claude-plugin", "marketplace.json");
-  const snapshotPackagePath = path.join(base, "plugins", "linear-ai", "package.json");
-  const snapshotCodexPath = path.join(base, "plugins", "linear-ai", ".codex-plugin", "plugin.json");
-  const snapshotClaudePath = path.join(base, "plugins", "linear-ai", ".claude-plugin", "plugin.json");
+  const vendoredPluginPath = path.join(base, "plugins", "linear-ai");
 
-  for (const filePath of [codexPath, claudePath, snapshotPackagePath, snapshotCodexPath, snapshotClaudePath]) {
+  for (const filePath of [codexPath, claudePath]) {
     if (!(await exists(filePath))) errors.push(`${path.relative(ROOT, filePath)} is missing`);
   }
+  if (await exists(vendoredPluginPath)) errors.push("marketplace must not vendor plugins/linear-ai; use source.url/ref instead");
   if (errors.length > 0) return;
 
   const codex = await readJson(codexPath);
   const codexPlugin = objectArray(codex.plugins)[0];
   const codexSource = objectValue(codexPlugin?.source);
+  expectEqual(errors, ".agents/plugins/marketplace.json plugin source type", codexSource?.source, "url");
   expectEqual(errors, ".agents/plugins/marketplace.json plugin source ref", codexSource?.ref, `v${version}`);
 
   const claude = await readJson(claudePath);
+  const claudeSource = objectValue(objectArray(claude.plugins)[0]?.source);
   expectEqual(errors, ".claude-plugin/marketplace.json metadata.version", objectValue(claude.metadata)?.version, version);
   expectEqual(errors, ".claude-plugin/marketplace.json plugin version", objectArray(claude.plugins)[0]?.version, version);
-
-  expectEqual(errors, "plugins/linear-ai/package.json version", (await readJson(snapshotPackagePath)).version, version);
-  expectEqual(errors, "plugins/linear-ai/.codex-plugin/plugin.json version", (await readJson(snapshotCodexPath)).version, version);
-  expectEqual(errors, "plugins/linear-ai/.claude-plugin/plugin.json version", (await readJson(snapshotClaudePath)).version, version);
+  expectEqual(errors, ".claude-plugin/marketplace.json plugin source type", claudeSource?.source, "url");
+  expectEqual(errors, ".claude-plugin/marketplace.json plugin source ref", claudeSource?.ref, `v${version}`);
 }
 
 async function main(argv: string[]): Promise<number> {

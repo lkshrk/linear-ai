@@ -1335,3 +1335,30 @@ test("release creator syncs package and plugin versions without committing", asy
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("marketplace generator creates metadata-only source refs", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-marketplace-"));
+  try {
+    const result = await runBun("generate_marketplace_specs.ts", ["--out-dir", dir, "--version", "package"]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(await Bun.file(path.join(dir, "plugins", "linear-ai", "package.json")).exists(), false);
+
+    const version = JSON.parse(await Bun.file(path.join(ROOT, "package.json")).text()).version;
+    const codex = JSON.parse(await Bun.file(path.join(dir, ".agents", "plugins", "marketplace.json")).text());
+    const claude = JSON.parse(await Bun.file(path.join(dir, ".claude-plugin", "marketplace.json")).text());
+    assert.deepEqual(codex.plugins[0].source, {
+      source: "url",
+      url: "https://github.com/lkshrk/linear-ai.git",
+      ref: `v${version}`
+    });
+    assert.deepEqual(claude.plugins[0].source, {
+      source: "url",
+      url: "https://github.com/lkshrk/linear-ai.git",
+      ref: `v${version}`
+    });
+    assert.match(await Bun.file(path.join(dir, "README.md")).text(), /source code is not vendored/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
