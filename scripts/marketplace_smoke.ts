@@ -17,7 +17,10 @@ async function run(command: string, args: string[], env: NodeJS.ProcessEnv = pro
     });
     return `${stdout}${stderr}`;
   } catch (error) {
-    const failed = error as Error & { stdout?: string; stderr?: string };
+    const failed = error as Error & { code?: string; stdout?: string; stderr?: string };
+    if (failed.code === "ENOENT") {
+      throw new Error(`${command} is required for marketplace smoke checks`);
+    }
     throw new Error(`${command} ${args.join(" ")} failed\n${failed.stdout ?? ""}${failed.stderr ?? ""}`.trim());
   }
 }

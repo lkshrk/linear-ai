@@ -75,6 +75,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install plugin marketplace CLIs
+        run: npm install -g @openai/codex @anthropic-ai/claude-code
+
       - name: Run release package smoke checks
         run: |
           make install-smoke
