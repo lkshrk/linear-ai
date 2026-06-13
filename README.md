@@ -44,7 +44,7 @@ Use the skills directly from this checkout, or install them into a compatible ag
 Install from a published GitHub repository with:
 
 ```sh
-npx skills add owner/linear-ai --agent codex --agent claude-code
+npx skills add lkshrk/linear-ai --agent codex --agent claude-code
 ```
 
 ## Typical Usage
