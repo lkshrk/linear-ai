@@ -166,6 +166,17 @@ bun scripts/verify_handoff.ts --issue-id CIV-999 --status latest-status.md --des
 
 The gate requires `review_ready`, `llm-review`, passed verification, completed dashboard tasks, valid commit subjects with the issue ID, final destination, and workspace cleanup evidence. When `--commits` is provided, those subjects must match `status.commits`. When `--repo` is provided, linked worktrees whose path or branch includes the issue ID must be cleaned up or explicitly listed in `workspace_cleanup.kept`.
 
+## Closeout Gate
+
+Verify that a merged PR has enough evidence to close the Linear issue:
+
+```sh
+gh pr view <PR> --json url,state,isDraft,baseRefName,mergeCommit,statusCheckRollup,commits > pr.json
+bun scripts/verify_closeout.ts --issue-id CIV-999 --pr pr.json --repo . --base origin/main
+```
+
+The gate requires a merged PR, a merge commit, at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit.
+
 ## Linear Metadata Helper
 
 Capture a local metadata snapshot from Linear MCP read results:

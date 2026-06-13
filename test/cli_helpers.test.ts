@@ -539,6 +539,60 @@ updated_by: linear-ai
   }
 });
 
+test("closeout verifier accepts merged PR with successful checks", async () => {
+  const pr = await withTempFile("linear-ai-closeout-pr-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "abc123" },
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" },
+      { name: "Dispatch release for release tag", status: "COMPLETED", conclusion: "SKIPPED" }
+    ]
+  }));
+  try {
+    const result = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", pr.file]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok closeout HCL-7/);
+  } finally {
+    await rm(pr.dir, { recursive: true, force: true });
+  }
+});
+
+test("closeout verifier rejects unmerged PRs and pending checks", async () => {
+  const unmerged = await withTempFile("linear-ai-closeout-unmerged-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "OPEN",
+    baseRefName: "main",
+    mergeCommit: null,
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  const pending = await withTempFile("linear-ai-closeout-pending-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "abc123" },
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "IN_PROGRESS", conclusion: "" }
+    ]
+  }));
+  try {
+    const unmergedResult = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", unmerged.file]);
+    const pendingResult = await runBun("verify_closeout.ts", ["--issue-id", "HCL-7", "--pr", pending.file]);
+
+    assert.notEqual(unmergedResult.code, 0);
+    assert.match(unmergedResult.stderr, /PR state must be MERGED/);
+    assert.notEqual(pendingResult.code, 0);
+    assert.match(pendingResult.stderr, /check Test and package skills must be completed before closeout/);
+  } finally {
+    await rm(unmerged.dir, { recursive: true, force: true });
+    await rm(pending.dir, { recursive: true, force: true });
+  }
+});
+
 test("handoff verifier accepts review-ready dashboard from issue description", async () => {
   const status = await withTempFile("linear-ai-description-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml()));
   const description = await withTempFile("linear-ai-description-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));

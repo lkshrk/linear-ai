@@ -1,6 +1,6 @@
 ---
 name: linear-deliver-feature
-description: "Run the full Linear AI workflow for one feature or bug: create issue, refine plan, implement work, verify, and prepare review handoff. Use when the user wants one feature delivered through all Linear AI steps end to end."
+description: "Run the full Linear AI workflow for one feature or bug: create issue, refine plan, implement work, verify, prepare review handoff, and close after merge. Use when the user wants one feature delivered through all Linear AI steps end to end."
 ---
 
 # Linear Deliver Feature
@@ -20,7 +20,8 @@ Start by running `linear-status` against the actual Linear issue. Use the detect
 5. `implement` - run `linear-implement` only after the ready plan exists and the Superpowers task list is mirrored into the issue description dashboard; make code changes, run verification, update the dashboard before moving between top-level tasks, and post marked status comments only for blockers, review readiness, abandoned work, verification failures, handoffs, or write-unavailable mutations.
 6. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan/status comments and issue description dashboard before claiming the workflow is ready for review.
 7. `review-handoff` - confirm PRs or patches are ready, verification evidence is present, and the issue has exactly one workflow state label: `llm-review` when review is ready, or `llm-blocked` when not.
-8. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
+8. `closeout` - run `linear-close` after review only when the PR is merged; verify merged PR, mainline, and CI evidence, then move the issue to `Done`, remove all `llm-*` labels, preserve cumulative `sp-*` labels, update the dashboard, and post final closeout evidence.
+9. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
 
 Do not advance to the next lifecycle state when the current state lacks required evidence. Stop at the current state and record the blocker.
 
@@ -49,6 +50,7 @@ Use Linear MCP through each phase skill:
 - `linear-create-issue` uses `list_teams`, `list_projects`, `list_issue_labels`, and `save_issue`.
 - `linear-refine` uses `get_issue`, `list_comments`, `save_comment`, and `save_issue`.
 - `linear-implement` uses `get_issue`, `list_comments`, `save_comment`, and `save_issue`.
+- `linear-close` uses `get_issue`, `list_comments`, `save_comment`, and `save_issue`.
 
 Do not skip validation between phases. Capture live metadata with:
 
@@ -77,5 +79,6 @@ Use the local JavaScript package manager or runtime available to the agent. Bun 
 - Stop at `refine-plan` if required product facts are missing and cannot be accepted as unknowns.
 - Stop at `implement` if verification cannot prove the ready plan was satisfied.
 - Stop at `review-handoff` if the issue cannot be moved to exactly one final LLM state label.
+- Stop at `closeout` if PR merge, mainline, or CI evidence is missing; keep `llm-review` until closeout is proven.
 
 If any phase is blocked by missing product facts or unavailable write authority, post or emit the precise `REQUIRED_LINEAR_MUTATIONS` and stop at the blocked handoff state instead of guessing.

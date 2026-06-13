@@ -158,6 +158,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.equal(claudeManifest.name, "linear-ai");
   assert.deepEqual(claudeManifest.skills.toSorted(), skillPaths);
   assert.deepEqual(skillNames, [
+    "linear-close",
     "linear-create-issue",
     "linear-deliver-feature",
     "linear-doctor",
@@ -175,6 +176,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.match(combined, /linear-create-issue/);
   assert.match(combined, /linear-refine/);
   assert.match(combined, /linear-implement/);
+  assert.match(combined, /linear-close/);
   assert.match(combined, /linear-status/);
   assert.match(combined, /review/i);
 });
@@ -208,6 +210,7 @@ test("linear deliver feature defines an explicit lifecycle state machine", async
     "implement",
     "validate-comments",
     "review-handoff",
+    "closeout",
     "final-linear-mutations"
   ]) {
     assert.match(skill, new RegExp(state), `missing lifecycle state ${state}`);
@@ -216,10 +219,27 @@ test("linear deliver feature defines an explicit lifecycle state machine", async
   assert.match(skill, /linear_metadata\.ts capture/);
   assert.match(skill, /validate_marked_comments\.ts/);
   assert.match(skill, /llm-review/);
+  assert.match(skill, /Done/);
   assert.match(skill, /Stop Conditions/);
   assert.match(skill, /Do not advance/);
   assert.match(skill, /Start by running `linear-status`/);
   assert.match(skill, /resume from the detected phase/);
+});
+
+test("linear close skill defines post-merge closeout guard", async () => {
+  const closeSkill = await readDoc("skills/linear-close/SKILL.md");
+  const closeAgent = await readAgent("closer");
+  const workflowDoc = await readDoc("docs/workflow.md");
+
+  for (const source of [closeSkill, closeAgent, workflowDoc]) {
+    assert.match(source, /merged PR/i);
+    assert.match(source, /mainline|main/i);
+    assert.match(source, /CI/i);
+    assert.match(source, /Done/);
+    assert.match(source, /remove.*llm-\*/is);
+    assert.match(source, /preserve.*sp-\*/is);
+    assert.match(source, /REQUIRED_LINEAR_MUTATIONS/);
+  }
 });
 
 test("linear refine forces grill continuation after each answer", async () => {
@@ -353,10 +373,11 @@ test("install docs cover portable skills and Claude Code", async () => {
 
 test("skills define Linear MCP tool contracts and fallback behavior", async () => {
   const expectations: Record<string, string[]> = {
+    "linear-close": ["get_issue", "list_comments", "save_comment", "save_issue"],
     "linear-create-issue": ["list_teams", "list_projects", "list_issue_labels", "save_issue"],
     "linear-refine": ["get_issue", "list_comments", "save_comment", "save_issue"],
     "linear-implement": ["get_issue", "list_comments", "save_comment", "save_issue"],
-    "linear-deliver-feature": ["linear-status", "linear-create-issue", "linear-refine", "linear-implement"],
+    "linear-deliver-feature": ["linear-status", "linear-create-issue", "linear-refine", "linear-implement", "linear-close"],
     "linear-status": ["get_issue", "list_comments"],
     "linear-doctor": ["list_teams", "list_projects", "list_issue_labels"]
   };
