@@ -115,7 +115,7 @@ jobs:
             --title "linear-ai $TAG" \
             --notes-file release-notes.md
 
-      - name: Publish marketplace metadata
+      - name: Bump marketplace linear-ai version
         env:
           MARKETPLACE_PUSH_TOKEN: ${{ secrets.MARKETPLACE_PUSH_TOKEN }}
         run: |

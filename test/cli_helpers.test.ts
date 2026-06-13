@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -1358,6 +1358,99 @@ test("marketplace generator creates metadata-only source refs", async () => {
       ref: `v${version}`
     });
     assert.match(await Bun.file(path.join(dir, "README.md")).text(), /source code is not vendored/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("marketplace publisher only bumps linear-ai manifest entries", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-marketplace-publish-"));
+  const sourceRepo = path.join(dir, "source");
+  const bareRepo = path.join(dir, "marketplace.git");
+  const checkout = path.join(dir, "checkout");
+  try {
+    await mkdir(path.join(sourceRepo, ".agents", "plugins"), { recursive: true });
+    await mkdir(path.join(sourceRepo, ".claude-plugin"), { recursive: true });
+    await mkdir(path.join(sourceRepo, "plugins", "other-plugin"), { recursive: true });
+    await writeFile(path.join(sourceRepo, "README.md"), "# lkshrk Agent Marketplace\n\nDo not rewrite me.\n");
+    await writeFile(path.join(sourceRepo, "plugins", "other-plugin", "keep.txt"), "kept\n");
+    await writeFile(path.join(sourceRepo, ".agents", "plugins", "marketplace.json"), `${JSON.stringify({
+      name: "lkshrk",
+      plugins: [
+        {
+          name: "linear-ai",
+          source: {
+            source: "url",
+            url: "https://github.com/lkshrk/linear-ai.git",
+            ref: "v0.5.1"
+          }
+        },
+        {
+          name: "other-plugin",
+          source: {
+            source: "url",
+            url: "https://github.com/lkshrk/other-plugin.git",
+            ref: "v1.2.3"
+          }
+        }
+      ]
+    }, null, 2)}\n`);
+    await writeFile(path.join(sourceRepo, ".claude-plugin", "marketplace.json"), `${JSON.stringify({
+      name: "lkshrk",
+      metadata: {
+        description: "Agent plugin marketplace.",
+        version: "9.9.9"
+      },
+      plugins: [
+        {
+          name: "linear-ai",
+          source: {
+            source: "url",
+            url: "https://github.com/lkshrk/linear-ai.git",
+            ref: "v0.5.1"
+          },
+          version: "0.5.1"
+        },
+        {
+          name: "other-plugin",
+          source: {
+            source: "url",
+            url: "https://github.com/lkshrk/other-plugin.git",
+            ref: "v1.2.3"
+          },
+          version: "1.2.3"
+        }
+      ]
+    }, null, 2)}\n`);
+
+    assert.equal((await runCommand("git", ["init"], sourceRepo)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.name", "Test Bot"], sourceRepo)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.email", "test@example.com"], sourceRepo)).code, 0);
+    assert.equal((await runCommand("git", ["add", "."], sourceRepo)).code, 0);
+    assert.equal((await runCommand("git", ["commit", "-m", "seed marketplace"], sourceRepo)).code, 0);
+    assert.equal((await runCommand("git", ["clone", "--bare", sourceRepo, bareRepo], dir)).code, 0);
+
+    const result = await runBun("publish_marketplace.ts", [
+      "--marketplace-repo",
+      bareRepo,
+      "--version",
+      "v0.6.0",
+      "--push"
+    ]);
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok marketplace bump v0\.6\.0/);
+
+    assert.equal((await runCommand("git", ["clone", bareRepo, checkout], dir)).code, 0);
+    const codex = JSON.parse(await Bun.file(path.join(checkout, ".agents", "plugins", "marketplace.json")).text());
+    const claude = JSON.parse(await Bun.file(path.join(checkout, ".claude-plugin", "marketplace.json")).text());
+    assert.equal(codex.plugins.find((plugin: { name: string }) => plugin.name === "linear-ai").source.ref, "v0.6.0");
+    assert.equal(codex.plugins.find((plugin: { name: string }) => plugin.name === "other-plugin").source.ref, "v1.2.3");
+    assert.equal(claude.plugins.find((plugin: { name: string }) => plugin.name === "linear-ai").source.ref, "v0.6.0");
+    assert.equal(claude.plugins.find((plugin: { name: string }) => plugin.name === "linear-ai").version, "0.6.0");
+    assert.equal(claude.plugins.find((plugin: { name: string }) => plugin.name === "other-plugin").source.ref, "v1.2.3");
+    assert.equal(claude.metadata.version, "9.9.9");
+    assert.equal(await Bun.file(path.join(checkout, "README.md")).text(), "# lkshrk Agent Marketplace\n\nDo not rewrite me.\n");
+    assert.equal(await Bun.file(path.join(checkout, "plugins", "other-plugin", "keep.txt")).text(), "kept\n");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
