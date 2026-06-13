@@ -72,6 +72,50 @@ test("implementer self-finalizes workflow labels", async () => {
   assert.match(prompt, /REQUIRED_LINEAR_MUTATIONS/);
 });
 
+test("implementer uses parallel subagents with tool and worktree isolation", async () => {
+  const implementerAgent = await readAgent("implementer");
+  const implementerDoc = await readDoc("docs/implementer.md");
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+
+  for (const source of [implementerAgent, implementerDoc, implementSkill]) {
+    assert.match(source, /subagents/i);
+    assert.match(source, /parallel/i);
+    assert.match(source, /independent/i);
+    assert.match(source, /worktree/i);
+    assert.match(source, /tools and permissions/i);
+    assert.match(source, /merge back/i);
+  }
+});
+
+test("implementer enforces commit hygiene and asks final branch destination", async () => {
+  const implementerAgent = await readAgent("implementer");
+  const implementerDoc = await readDoc("docs/implementer.md");
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+
+  for (const source of [implementerAgent, implementerDoc, implementSkill]) {
+    assert.match(source, /reasonable amount of commits/i);
+    assert.match(source, /semver/i);
+    assert.match(source, /issue ID/i);
+    assert.match(source, /main/i);
+    assert.match(source, /feature branch/i);
+    assert.match(source, /PR/i);
+  }
+});
+
+test("implementer cleans up temporary workspaces after merge", async () => {
+  const implementerAgent = await readAgent("implementer");
+  const implementerDoc = await readDoc("docs/implementer.md");
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+
+  for (const source of [implementerAgent, implementerDoc, implementSkill]) {
+    assert.match(source, /clean up/i);
+    assert.match(source, /workspaces/i);
+    assert.match(source, /worktrees/i);
+    assert.match(source, /temporary/i);
+    assert.match(source, /intentionally kept/i);
+  }
+});
+
 test("required passes define unique llm state", async () => {
   const doc = await readDoc("docs/agent-required-passes.md");
 
@@ -113,7 +157,14 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.equal(manifest.skills, "./skills/");
   assert.equal(claudeManifest.name, "linear-ai");
   assert.deepEqual(claudeManifest.skills.toSorted(), skillPaths);
-  assert.deepEqual(skillNames, ["linear-create-issue", "linear-deliver-feature", "linear-implement", "linear-refine"]);
+  assert.deepEqual(skillNames, [
+    "linear-create-issue",
+    "linear-deliver-feature",
+    "linear-doctor",
+    "linear-implement",
+    "linear-refine",
+    "linear-status"
+  ]);
 
   for (const skillName of skillNames) {
     const skill = await readDoc(path.join("skills", skillName, "SKILL.md"));
@@ -124,6 +175,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.match(combined, /linear-create-issue/);
   assert.match(combined, /linear-refine/);
   assert.match(combined, /linear-implement/);
+  assert.match(combined, /linear-status/);
   assert.match(combined, /review/i);
 });
 
@@ -149,6 +201,7 @@ test("linear deliver feature defines an explicit lifecycle state machine", async
   const skill = await readDoc("skills/linear-deliver-feature/SKILL.md");
 
   for (const state of [
+    "detect-current-state",
     "capture-metadata",
     "create-issue",
     "refine-plan",
@@ -165,6 +218,97 @@ test("linear deliver feature defines an explicit lifecycle state machine", async
   assert.match(skill, /llm-review/);
   assert.match(skill, /Stop Conditions/);
   assert.match(skill, /Do not advance/);
+  assert.match(skill, /Start by running `linear-status`/);
+  assert.match(skill, /resume from the detected phase/);
+});
+
+test("linear refine forces grill continuation after each answer", async () => {
+  const refineSkill = await readDoc("skills/linear-refine/SKILL.md");
+  const questionerAgent = await readAgent("questioner");
+  const questionerDoc = await readDoc("docs/questioner.md");
+
+  for (const source of [refineSkill, questionerAgent, questionerDoc]) {
+    assert.match(source, /Grill Continuation/i);
+    assert.match(source, /after each human answer/i);
+    assert.match(source, /ask if there is anything else to add/i);
+    assert.match(source, /continue the current step/i);
+    assert.match(source, /move to the next/i);
+  }
+
+  assert.match(questionerDoc, /do not mark.*ready.*until.*grill/i);
+});
+
+test("workflow skills define step completion handoff instead of stopping silently", async () => {
+  const docs = [
+    "skills/linear-create-issue/SKILL.md",
+    "skills/linear-refine/SKILL.md",
+    "skills/linear-implement/SKILL.md",
+    "skills/linear-deliver-feature/SKILL.md",
+    "skills/linear-status/SKILL.md",
+    "skills/linear-doctor/SKILL.md"
+  ];
+
+  for (const docPath of docs) {
+    const doc = await readDoc(docPath);
+    assert.match(doc, /Step Completion Handoff/i, `${docPath} should define step handoff`);
+    assert.match(doc, /what changed/i, `${docPath} should report what changed`);
+    assert.match(doc, /ask if there is anything else to add/i, `${docPath} should ask for additions`);
+    assert.match(doc, /recommended next step/i, `${docPath} should recommend next step`);
+    assert.match(doc, /Current phase/i, `${docPath} should report current phase`);
+    assert.match(doc, /Evidence/i, `${docPath} should report evidence`);
+    assert.match(doc, /Open blocker/i, `${docPath} should report blockers`);
+  }
+});
+
+test("linear status skill diagnoses current phase and next action from issue state", async () => {
+  const skill = await readDoc("skills/linear-status/SKILL.md");
+
+  for (const term of [
+    "get_issue",
+    "list_comments",
+    "current phase",
+    "missing evidence",
+    "recommended next skill",
+    "REQUIRED_LINEAR_MUTATIONS",
+    "labels and comments disagree",
+    "validate_marked_comments.ts"
+  ]) {
+    assert.match(skill, new RegExp(term, "i"), `linear-status should mention ${term}`);
+  }
+});
+
+test("linear doctor checks Linear setup before workflow execution", async () => {
+  const skill = await readDoc("skills/linear-doctor/SKILL.md");
+  const setupDoc = await readDoc("docs/linear-setup.md");
+
+  for (const term of [
+    "list_teams",
+    "list_projects",
+    "list_issue_labels",
+    "missing `llm-*`",
+    "missing `sp-*`",
+    "component labels",
+    "REQUIRED_LINEAR_MUTATIONS"
+  ]) {
+    assert.match(skill, new RegExp(term.replaceAll("*", "\\*"), "i"), `linear-doctor should mention ${term}`);
+  }
+  assert.match(setupDoc, /sp-clarify/);
+  assert.match(setupDoc, /sp-review/);
+});
+
+test("dashboard comment contract supports one updatable progress comment", async () => {
+  const dashboardTemplate = await readDoc("templates/linear-dashboard-comment.md");
+  const dashboardSchema = await readDoc("schemas/linear-ai.dashboard.v1.schema.yaml");
+  const persistenceDoc = await readDoc("docs/superpowers-linear-persistence.md");
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+  const deliverSkill = await readDoc("skills/linear-deliver-feature/SKILL.md");
+
+  for (const source of [dashboardTemplate, dashboardSchema, persistenceDoc, implementSkill, deliverSkill]) {
+    assert.match(source, /linear-ai\.dashboard\.v1/);
+    assert.match(source, /one dashboard comment/i);
+    assert.match(source, /task list/i);
+    assert.match(source, /emoji/i);
+  }
 });
 
 test("install docs cover portable skills and Claude Code", async () => {
@@ -175,6 +319,9 @@ test("install docs cover portable skills and Claude Code", async () => {
   assert.match(installDoc, /--agent claude-code/);
   assert.match(installDoc, /\.claude-plugin\/plugin\.json/);
   assert.match(installDoc, /linear-deliver-feature/);
+  assert.match(installDoc, /No-install repo-local usage/);
+  assert.match(installDoc, /open Codex in this directory/i);
+  assert.match(installDoc, /linear-status/);
   assert.match(readme, /Install/);
   assert.match(readme, /Claude Code/);
 });
@@ -184,7 +331,9 @@ test("skills define Linear MCP tool contracts and fallback behavior", async () =
     "linear-create-issue": ["list_teams", "list_projects", "list_issue_labels", "save_issue"],
     "linear-refine": ["get_issue", "list_comments", "save_comment", "save_issue"],
     "linear-implement": ["get_issue", "list_comments", "save_comment", "save_issue"],
-    "linear-deliver-feature": ["linear-create-issue", "linear-refine", "linear-implement"]
+    "linear-deliver-feature": ["linear-status", "linear-create-issue", "linear-refine", "linear-implement"],
+    "linear-status": ["get_issue", "list_comments"],
+    "linear-doctor": ["list_teams", "list_projects", "list_issue_labels"]
   };
 
   for (const [skillName, requiredTerms] of Object.entries(expectations)) {
@@ -221,7 +370,9 @@ test("skills and install docs are JavaScript runner agnostic", async () => {
     "skills/linear-create-issue/SKILL.md",
     "skills/linear-refine/SKILL.md",
     "skills/linear-implement/SKILL.md",
-    "skills/linear-deliver-feature/SKILL.md"
+    "skills/linear-deliver-feature/SKILL.md",
+    "skills/linear-status/SKILL.md",
+    "skills/linear-doctor/SKILL.md"
   ];
 
   for (const docPath of docs) {

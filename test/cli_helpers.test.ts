@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { test } from "bun:test";
+import YAML from "yaml";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -31,6 +32,24 @@ function runBun(script: string, args: string[] = []): Promise<RunResult> {
   });
 }
 
+function runCommand(command: string, args: string[], cwd: string): Promise<RunResult> {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (code) => resolve({ stdout, stderr, code }));
+  });
+}
+
 async function withTempFile(prefix: string, suffix: string, content: string): Promise<{ dir: string; file: string }> {
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
   const file = path.join(dir, `input${suffix}`);
@@ -38,15 +57,93 @@ async function withTempFile(prefix: string, suffix: string, content: string): Pr
   return { dir, file };
 }
 
-test("validator accepts valid plan and status examples", async () => {
+function reviewReadyStatusYaml(overrides: string = ""): string {
+  const base = YAML.parse(`schema: linear-ai.status.v1
+issue_id: CIV-999
+plan_revision: 1
+status_revision: 1
+implementation_status: review_ready
+draft_prs:
+  - repository: web
+    url: https://github.com/example/web/pull/999
+completed_items:
+  - I1
+blocked_items: []
+skipped_items: []
+placeholders: []
+questions: []
+verification:
+  - check: bun test
+    result: passed
+    reason: Full suite passed.
+recommended_labels_to_apply:
+  - llm-review
+recommended_labels_to_remove:
+  - llm-ready
+  - llm-active
+recommended_status: In Review
+commits:
+  - subject: "feat(CIV-999): add review handoff gate"
+final_destination: feature_branch_pr
+workspace_cleanup:
+  status: cleaned
+  kept: []
+`);
+  const patch = overrides.trim() ? YAML.parse(overrides) : {};
+  return YAML.stringify({ ...base, ...patch });
+}
+
+function reviewReadyDashboardYaml(overrides: string = ""): string {
+  const base = YAML.parse(`schema: linear-ai.dashboard.v1
+issue_id: CIV-999
+dashboard_revision: 1
+current_phase: review-handoff
+llm_state: llm-review
+sp_phases:
+  - sp-plan
+  - sp-implement
+  - sp-verify
+tasks:
+  - id: T1
+    state: done
+    emoji: "✅"
+    title: Add handoff gate
+    evidence: scripts/verify_handoff.ts
+blockers: []
+next_step: Review PR.
+updated_by: linear-ai
+`);
+  const patch = overrides.trim() ? YAML.parse(overrides) : {};
+  return YAML.stringify({ ...base, ...patch });
+}
+
+function markedStatus(yaml: string): string {
+  return `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
+\`\`\`yaml
+${yaml}\`\`\`
+<!-- /linear-ai:status -->
+`;
+}
+
+function markedDashboard(yaml: string): string {
+  return `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
+\`\`\`yaml
+${yaml}\`\`\`
+<!-- /linear-ai:dashboard -->
+`;
+}
+
+test("validator accepts valid plan, status, and dashboard examples", async () => {
   const result = await runBun("validate_marked_comments.ts", [
     path.join(ROOT, "examples", "plan-comment.md"),
-    path.join(ROOT, "examples", "status-comment.md")
+    path.join(ROOT, "examples", "status-comment.md"),
+    path.join(ROOT, "examples", "dashboard-comment.md")
   ]);
 
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout, /examples\/plan-comment\.md plan/);
   assert.match(result.stdout, /examples\/status-comment\.md status/);
+  assert.match(result.stdout, /examples\/dashboard-comment\.md dashboard/);
 });
 
 test("validator rejects ready plans with unresolved open questions", async () => {
@@ -112,6 +209,11 @@ verification: []
 recommended_labels_to_apply: []
 recommended_labels_to_remove: []
 recommended_status: Blocked
+commits: []
+final_destination: undecided
+workspace_cleanup:
+  status: pending
+  kept: []
 \`\`\`
 <!-- /linear-ai:status -->
 `);
@@ -146,6 +248,11 @@ verification:
 recommended_labels_to_apply: []
 recommended_labels_to_remove: []
 recommended_status: In Progress
+commits: []
+final_destination: undecided
+workspace_cleanup:
+  status: pending
+  kept: []
 \`\`\`
 <!-- /linear-ai:status -->
 `);
@@ -156,6 +263,549 @@ recommended_status: In Progress
     assert.match(result.stderr, /verification\[0\]\.result is invalid/);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("validator rejects invalid dashboard task emoji", async () => {
+  const { dir, file } = await withTempFile("linear-ai-dashboard-", ".md", `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.dashboard.v1
+issue_id: CIV-999
+dashboard_revision: 1
+current_phase: implement
+llm_state: llm-active
+sp_phases:
+  - sp-plan
+tasks:
+  - id: T1
+    state: done
+    emoji: "[done]"
+    title: Use invalid emoji marker.
+    evidence: test
+blockers: []
+next_step: Fix the marker.
+updated_by: linear-ai
+\`\`\`
+<!-- /linear-ai:dashboard -->
+`);
+  try {
+    const result = await runBun("validate_marked_comments.ts", [file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /tasks\[0\]\.emoji is invalid/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier accepts review-ready status and completed dashboard", async () => {
+  const status = await withTempFile("linear-ai-handoff-status-", ".md", `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.status.v1
+issue_id: CIV-999
+plan_revision: 1
+status_revision: 1
+implementation_status: review_ready
+draft_prs:
+  - repository: web
+    url: https://github.com/example/web/pull/999
+completed_items:
+  - I1
+blocked_items: []
+skipped_items: []
+placeholders: []
+questions: []
+verification:
+  - check: bun test
+    result: passed
+    reason: Full suite passed.
+recommended_labels_to_apply:
+  - llm-review
+recommended_labels_to_remove:
+  - llm-ready
+  - llm-active
+recommended_status: In Review
+commits:
+  - subject: "feat(CIV-999): add review handoff gate"
+final_destination: feature_branch_pr
+workspace_cleanup:
+  status: cleaned
+  kept: []
+\`\`\`
+<!-- /linear-ai:status -->
+`);
+  const dashboard = await withTempFile("linear-ai-handoff-dashboard-", ".md", `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.dashboard.v1
+issue_id: CIV-999
+dashboard_revision: 1
+current_phase: review-handoff
+llm_state: llm-review
+sp_phases:
+  - sp-plan
+  - sp-implement
+  - sp-verify
+tasks:
+  - id: T1
+    state: done
+    emoji: "✅"
+    title: Add handoff gate
+    evidence: scripts/verify_handoff.ts
+blockers: []
+next_step: Review PR.
+updated_by: linear-ai
+\`\`\`
+<!-- /linear-ai:dashboard -->
+`);
+  const commits = await withTempFile("linear-ai-handoff-commits-", ".txt", "feat(CIV-999): add review handoff gate\n");
+
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file,
+      "--commits",
+      commits.file
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok handoff CIV-999/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+    await rm(commits.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects bad commit subject", async () => {
+  const status = await withTempFile("linear-ai-bad-handoff-status-", ".md", `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.status.v1
+issue_id: CIV-999
+plan_revision: 1
+status_revision: 1
+implementation_status: review_ready
+draft_prs: []
+completed_items:
+  - I1
+blocked_items: []
+skipped_items: []
+placeholders: []
+questions: []
+verification:
+  - check: bun test
+    result: passed
+    reason: Full suite passed.
+recommended_labels_to_apply:
+  - llm-review
+recommended_labels_to_remove: []
+recommended_status: In Review
+commits:
+  - subject: "add review handoff gate"
+final_destination: feature_branch_pr
+workspace_cleanup:
+  status: cleaned
+  kept: []
+\`\`\`
+<!-- /linear-ai:status -->
+`);
+  const dashboard = await withTempFile("linear-ai-bad-handoff-dashboard-", ".md", `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.dashboard.v1
+issue_id: CIV-999
+dashboard_revision: 1
+current_phase: review-handoff
+llm_state: llm-review
+sp_phases:
+  - sp-plan
+tasks:
+  - id: T1
+    state: done
+    emoji: "✅"
+    title: Add handoff gate
+    evidence: scripts/verify_handoff.ts
+blockers: []
+next_step: Review PR.
+updated_by: linear-ai
+\`\`\`
+<!-- /linear-ai:dashboard -->
+`);
+
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /commit subject must use semver\/conventional syntax with issue ID CIV-999/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects pending workspace cleanup", async () => {
+  const status = await withTempFile("linear-ai-pending-cleanup-status-", ".md", `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.status.v1
+issue_id: CIV-999
+plan_revision: 1
+status_revision: 1
+implementation_status: review_ready
+draft_prs: []
+completed_items:
+  - I1
+blocked_items: []
+skipped_items: []
+placeholders: []
+questions: []
+verification:
+  - check: bun test
+    result: passed
+    reason: Full suite passed.
+recommended_labels_to_apply:
+  - llm-review
+recommended_labels_to_remove: []
+recommended_status: In Review
+commits:
+  - subject: "feat(CIV-999): add review handoff gate"
+final_destination: feature_branch_pr
+workspace_cleanup:
+  status: pending
+  kept: []
+\`\`\`
+<!-- /linear-ai:status -->
+`);
+  const dashboard = await withTempFile("linear-ai-pending-cleanup-dashboard-", ".md", `<!-- linear-ai:dashboard v1 issue=CIV-999 dashboard_rev=1 -->
+\`\`\`yaml
+schema: linear-ai.dashboard.v1
+issue_id: CIV-999
+dashboard_revision: 1
+current_phase: review-handoff
+llm_state: llm-review
+sp_phases:
+  - sp-plan
+tasks:
+  - id: T1
+    state: done
+    emoji: "✅"
+    title: Add handoff gate
+    evidence: scripts/verify_handoff.ts
+blockers: []
+next_step: Review PR.
+updated_by: linear-ai
+\`\`\`
+<!-- /linear-ai:dashboard -->
+`);
+
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /workspace_cleanup.status must be cleaned or intentionally_kept/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects non-review-ready status", async () => {
+  const status = await withTempFile("linear-ai-active-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `implementation_status: active
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-active-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /implementation_status must be review_ready/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects missing llm-review label", async () => {
+  const status = await withTempFile("linear-ai-label-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `recommended_labels_to_apply:
+  - llm-active
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-label-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /recommended_labels_to_apply must include llm-review/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects failed verification and undecided destination", async () => {
+  const status = await withTempFile("linear-ai-verification-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `verification:
+  - check: bun test
+    result: failed
+    reason: Tests failed.
+final_destination: undecided
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-verification-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /verification\[0\]\.result must be passed/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects undecided final destination", async () => {
+  const status = await withTempFile("linear-ai-destination-handoff-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `final_destination: undecided
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-destination-handoff-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /final_destination must be main or feature_branch_pr/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects dashboard not ready or with blockers", async () => {
+  const status = await withTempFile("linear-ai-dashboard-state-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const dashboard = await withTempFile("linear-ai-dashboard-state-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml(
+    `llm_state: llm-active
+blockers:
+  - Waiting for cleanup.
+`
+  )));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard llm_state must be llm-review/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects dashboard blockers", async () => {
+  const status = await withTempFile("linear-ai-dashboard-blockers-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const dashboard = await withTempFile("linear-ai-dashboard-blockers-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml(
+    `blockers:
+  - Waiting for cleanup.
+`
+  )));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard blockers must be empty/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects unfinished dashboard task", async () => {
+  const status = await withTempFile("linear-ai-dashboard-task-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const dashboard = await withTempFile("linear-ai-dashboard-task-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml(
+    `tasks:
+  - id: T1
+    state: in_progress
+    emoji: "🔄"
+    title: Add handoff gate
+    evidence: scripts/verify_handoff.ts
+`
+  )));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /dashboard tasks\[0\] must be done with ✅/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects intentionally kept cleanup without details", async () => {
+  const status = await withTempFile("linear-ai-kept-cleanup-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `workspace_cleanup:
+  status: intentionally_kept
+  kept: []
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-kept-cleanup-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /intentionally kept workspaces must be listed/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier requires git commits file to match status commits", async () => {
+  const status = await withTempFile("linear-ai-commit-match-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const dashboard = await withTempFile("linear-ai-commit-match-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  const commits = await withTempFile("linear-ai-commit-match-", ".txt", "fix(CIV-999): different real commit\n");
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file,
+      "--commits",
+      commits.file
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /commit subjects from --commits must match status commits/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+    await rm(commits.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects too many commits", async () => {
+  const status = await withTempFile("linear-ai-commit-count-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `commits:
+  - subject: "feat(CIV-999): add first change"
+  - subject: "fix(CIV-999): add second change"
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-commit-count-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file,
+      "--max-commits",
+      "1"
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /commit count 2 exceeds max 1/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects unreported issue worktree", async () => {
+  const repoDir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-worktree-repo-"));
+  const linkedDir = `${repoDir}-CIV-999-lane`;
+  const status = await withTempFile("linear-ai-worktree-status-", ".md", markedStatus(reviewReadyStatusYaml()));
+  const dashboard = await withTempFile("linear-ai-worktree-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+
+  try {
+    assert.equal((await runCommand("git", ["init"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.email", "test@example.com"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.name", "Test User"], repoDir)).code, 0);
+    await writeFile(path.join(repoDir, "README.md"), "test\n");
+    assert.equal((await runCommand("git", ["add", "README.md"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["commit", "-m", "chore(CIV-999): initial test repo"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["worktree", "add", "-b", "CIV-999-lane", linkedDir], repoDir)).code, 0);
+
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file,
+      "--repo",
+      repoDir
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /unreported issue worktree remains/);
+  } finally {
+    await runCommand("git", ["worktree", "remove", "--force", linkedDir], repoDir).catch(() => ({ stdout: "", stderr: "", code: 1 }));
+    await rm(repoDir, { recursive: true, force: true });
+    await rm(linkedDir, { recursive: true, force: true });
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier accepts intentionally kept reported issue worktree", async () => {
+  const repoDir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-kept-worktree-repo-"));
+  const linkedDir = `${repoDir}-CIV-999-lane`;
+  const status = await withTempFile("linear-ai-kept-worktree-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `workspace_cleanup:
+  status: intentionally_kept
+  kept:
+    - path: ${JSON.stringify(linkedDir)}
+      branch: CIV-999-lane
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-kept-worktree-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+
+  try {
+    assert.equal((await runCommand("git", ["init"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.email", "test@example.com"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.name", "Test User"], repoDir)).code, 0);
+    await writeFile(path.join(repoDir, "README.md"), "test\n");
+    assert.equal((await runCommand("git", ["add", "README.md"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["commit", "-m", "chore(CIV-999): initial test repo"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["worktree", "add", "-b", "CIV-999-lane", linkedDir], repoDir)).code, 0);
+
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file,
+      "--repo",
+      repoDir
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok handoff CIV-999/);
+  } finally {
+    await runCommand("git", ["worktree", "remove", "--force", linkedDir], repoDir).catch(() => ({ stdout: "", stderr: "", code: 1 }));
+    await rm(repoDir, { recursive: true, force: true });
+    await rm(linkedDir, { recursive: true, force: true });
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
   }
 });
 
@@ -260,6 +910,11 @@ recommended_labels_to_apply:
   - llm-blocked
 recommended_labels_to_remove: []
 recommended_status: Blocked
+commits: []
+final_destination: undecided
+workspace_cleanup:
+  status: pending
+  kept: []
 \`\`\`
 <!-- /linear-ai:status -->
 `);
@@ -332,7 +987,7 @@ do_not_assume:
   }
 });
 
-test("extractor returns latest plan by default and latest status when requested", async () => {
+test("extractor returns latest plan by default and latest status or dashboard when requested", async () => {
   const { dir, file } = await withTempFile("linear-ai-thread-", ".md", `Human comment.
 
 <!-- linear-ai:plan v1 issue=CIV-1 rev=1 -->
@@ -349,6 +1004,13 @@ status_revision: 2
 \`\`\`
 <!-- /linear-ai:status -->
 
+<!-- linear-ai:dashboard v1 issue=CIV-1 dashboard_rev=3 -->
+\`\`\`yaml
+schema: linear-ai.dashboard.v1
+dashboard_revision: 3
+\`\`\`
+<!-- /linear-ai:dashboard -->
+
 <!-- linear-ai:plan v1 issue=CIV-1 rev=2 -->
 \`\`\`yaml
 schema: linear-ai.plan.v1
@@ -359,6 +1021,8 @@ revision: 2
   try {
     const planResult = await runBun("extract_marked_comment.ts", [file]);
     const statusResult = await runBun("extract_marked_comment.ts", ["--kind", "status", file]);
+    const dashboardResult = await runBun("extract_marked_comment.ts", ["--kind", "dashboard", file]);
+    const anyResult = await runBun("extract_marked_comment.ts", ["--kind", "any", file]);
 
     assert.equal(planResult.code, 0, planResult.stderr);
     assert.match(planResult.stdout, /rev=2/);
@@ -367,6 +1031,11 @@ revision: 2
     assert.equal(statusResult.code, 0, statusResult.stderr);
     assert.match(statusResult.stdout, /status_rev=2/);
     assert.match(statusResult.stdout, /status_revision: 2/);
+    assert.equal(dashboardResult.code, 0, dashboardResult.stderr);
+    assert.match(dashboardResult.stdout, /dashboard_rev=3/);
+    assert.match(dashboardResult.stdout, /dashboard_revision: 3/);
+    assert.equal(anyResult.code, 0, anyResult.stderr);
+    assert.match(anyResult.stdout, /rev=2/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
