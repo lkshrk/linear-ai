@@ -1,12 +1,17 @@
 {
   "name": "linear-ai",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Linear issue intake, setup checks, status detection, refinement, implementation, and review workflows for AI-assisted delivery.",
   "author": {
     "name": "Linear AI"
   },
   "license": "MIT",
-  "keywords": ["linear", "issue-triage", "workflow", "codex"],
+  "keywords": [
+    "linear",
+    "issue-triage",
+    "workflow",
+    "codex"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Linear AI",
@@ -14,7 +19,10 @@
     "longDescription": "Workflow skills and local validators for Markdown-first Linear issue setup checks, status detection, intake, implementation planning, agent execution, dashboard progress, and review handoff.",
     "developerName": "Linear AI",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "defaultPrompt": [
       "Create a Linear issue from this rough report",
       "What is the current phase of this Linear issue?",
