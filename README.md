@@ -128,6 +128,7 @@ make skills-smoke
 make marketplace-generate
 make marketplace-smoke
 make release-check
+bun scripts/create_release.ts patch --dry-run
 ```
 
 ## Repository Layout

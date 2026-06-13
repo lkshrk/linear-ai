@@ -63,13 +63,20 @@ claude plugin install linear-ai@linear-ai
 
 On a new `linear-ai` release:
 
-1. Update `package.json`, `.codex-plugin/plugin.json`, and `.claude-plugin/plugin.json` to the same version.
-2. Run `make release-check` to regenerate `dist/marketplace` and verify package metadata, plugin manifests, and marketplace refs agree.
-3. Tag the source repository with `v<package version>` and push the tag.
-4. Wait for source CI and release workflow to pass.
-5. Generate marketplace specs for the released version.
-6. Open a PR against the marketplace repository.
-7. Marketplace CI validates Codex and Claude Code can install `linear-ai` from the updated manifests.
-8. Merge the marketplace PR after validation.
+1. Create the release commit and tag locally:
+
+   ```sh
+   bun scripts/create_release.ts patch
+   bun scripts/create_release.ts minor
+   bun scripts/create_release.ts major
+   bun scripts/create_release.ts v1.2.3
+   ```
+
+   Use `--dry-run` to preview the target version. Use `--push` to push the release commit and tag after local checks pass.
+2. Wait for source CI and release workflow to pass.
+3. Generate marketplace specs for the released version.
+4. Open a PR against the marketplace repository.
+5. Marketplace CI validates Codex and Claude Code can install `linear-ai` from the updated manifests.
+6. Merge the marketplace PR after validation.
 
 Do not make every plugin source repository double as a marketplace. Keep marketplace metadata centralized, like a Homebrew tap.

@@ -1287,3 +1287,51 @@ test("runner detector returns the first available JavaScript package runner", as
   assert.equal(result.code, 0, result.stderr);
   assert.match(result.stdout.trim(), /^(bun|pnpm|npm|yarn|node)$/);
 });
+
+test("release creator dry-runs semver level bumps", async () => {
+  const result = await runBun("create_release.ts", ["patch", "--dry-run"]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /would create release v0\.5\.2/);
+  assert.match(result.stdout, /mode: dry-run/);
+});
+
+test("release creator dry-runs explicit release versions", async () => {
+  const result = await runBun("create_release.ts", ["v0.6.0", "--dry-run"]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /would create release v0\.6\.0/);
+});
+
+test("release creator rejects invalid release versions", async () => {
+  const result = await runBun("create_release.ts", ["v0.6", "--dry-run"]);
+
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /release must be major, minor, patch, or vX.Y.Z/);
+});
+
+test("release creator syncs package and plugin versions without committing", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-release-"));
+  try {
+    assert.equal((await runCommand("git", ["clone", ROOT, dir], os.tmpdir())).code, 0);
+    const result = await runCommand(process.execPath, [
+      path.join(ROOT, "scripts", "create_release.ts"),
+      "minor",
+      "--repo-dir",
+      dir,
+      "--no-commit"
+    ], dir);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /prepared release v0\.6\.0/);
+
+    const packageJson = JSON.parse(await Bun.file(path.join(dir, "package.json")).text());
+    const codexManifest = JSON.parse(await Bun.file(path.join(dir, ".codex-plugin", "plugin.json")).text());
+    const claudeManifest = JSON.parse(await Bun.file(path.join(dir, ".claude-plugin", "plugin.json")).text());
+    assert.equal(packageJson.version, "0.6.0");
+    assert.equal(codexManifest.version, "0.6.0");
+    assert.equal(claudeManifest.version, "0.6.0");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

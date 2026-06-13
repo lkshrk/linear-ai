@@ -82,6 +82,15 @@ make release-check
 bun scripts/verify_release.ts --tag v<package-version> --marketplace-dir dist/marketplace
 ```
 
+Prepare a new source release. The script accepts `major`, `minor`, `patch`, or an explicit `vX.Y.Z`; it creates the local release commit and tag unless `--no-commit` is passed, and pushes only with `--push`.
+
+```sh
+bun scripts/create_release.ts patch --dry-run
+bun scripts/create_release.ts v1.2.3
+bun scripts/create_release.ts minor --push
+make release-create VERSION=patch
+```
+
 ## Linear MCP
 
 Linear MCP setup is documented in `docs/linear-mcp.md`.
