@@ -161,6 +161,9 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.equal(claudeManifest.name, "linear-ai");
   assert.deepEqual(claudeManifest.skills.toSorted(), skillPaths);
   assert.deepEqual(skillNames, [
+    "linear-batch-close",
+    "linear-batch-implement",
+    "linear-batch-refine",
     "linear-close",
     "linear-create-issue",
     "linear-deliver-feature",
@@ -182,6 +185,65 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.match(combined, /linear-close/);
   assert.match(combined, /linear-status/);
   assert.match(combined, /review/i);
+});
+
+test("batch workflow skills orchestrate single-issue skills", async () => {
+  const expectations: Record<string, string[]> = {
+    "linear-batch-refine": [
+      "llm-refine",
+      "llm-blocked",
+      "linear-refine",
+      "one issue at a time",
+      "full queue pass",
+      "grouped questions"
+    ],
+    "linear-batch-implement": [
+      "llm-ready",
+      "newest valid ready plan",
+      "linear-implement",
+      "maximum parallelism",
+      "cap parallelism at 6",
+      "per-issue isolation"
+    ],
+    "linear-batch-close": [
+      "llm-review",
+      "linear-close",
+      "bounded parallelism",
+      "cap parallelism at 6",
+      "closeout mutations"
+    ]
+  };
+
+  for (const [skillName, requiredTerms] of Object.entries(expectations)) {
+    const skill = await readDoc(path.join("skills", skillName, "SKILL.md"));
+    assert.match(skill, new RegExp(`name: ${skillName}`));
+    assert.match(skill, /Linear MCP/i);
+    assert.match(skill, /get_issue/);
+    assert.match(skill, /list_issues/);
+    assert.match(skill, /list_comments/);
+    assert.match(skill, /confirmation/i);
+    assert.match(skill, /dry-run|list-only/i);
+    assert.match(skill, /priority.*oldest-updated|oldest-updated.*priority/is);
+    assert.match(skill, /re-read|reread/i);
+    assert.match(skill, /retry/i);
+    assert.match(skill, /cancel/i);
+    assert.match(skill, /structured subagent result/i);
+    assert.match(skill, /questions[\s\S]*recommended_answer[\s\S]*reason/i);
+    assert.match(skill, /feedback[\s\S]*severity[\s\S]*recommendation/i);
+    assert.match(skill, /discovered[\s\S]*dispatched[\s\S]*completed[\s\S]*blocked[\s\S]*failed[\s\S]*skipped[\s\S]*cancelled/i);
+    assert.match(skill, /single-issue skills own/i);
+    assert.match(skill, /REQUIRED_LINEAR_MUTATIONS/);
+
+    for (const term of requiredTerms) {
+      assert.match(skill, new RegExp(term, "i"), `${skillName} should mention ${term}`);
+    }
+
+    const metadata = await readDoc(path.join("skills", skillName, "agents", "openai.yaml"));
+    assert.match(metadata, /display_name:/);
+    assert.match(metadata, /short_description:/);
+    assert.match(metadata, /default_prompt:/);
+    assert.match(metadata, /linear/);
+  }
 });
 
 test("self review catches stale naming and legacy helper drift", async () => {
@@ -367,6 +429,9 @@ test("install docs cover portable skills and Claude Code", async () => {
   assert.match(installDoc, /--agent claude-code/);
   assert.match(installDoc, /\.claude-plugin\/plugin\.json/);
   assert.match(installDoc, /linear-deliver-feature/);
+  assert.match(installDoc, /linear-batch-refine/);
+  assert.match(installDoc, /linear-batch-implement/);
+  assert.match(installDoc, /linear-batch-close/);
   assert.match(installDoc, /No-install repo-local usage/);
   assert.match(installDoc, /open Codex in this directory/i);
   assert.match(installDoc, /linear-status/);

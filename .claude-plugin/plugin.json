@@ -3,6 +3,9 @@
   "version": "0.5.2",
   "description": "Linear issue intake, refinement, implementation, and review workflow skills.",
   "skills": [
+    "./skills/linear-batch-close",
+    "./skills/linear-batch-implement",
+    "./skills/linear-batch-refine",
     "./skills/linear-create-issue",
     "./skills/linear-refine",
     "./skills/linear-implement",

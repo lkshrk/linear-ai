@@ -69,6 +69,9 @@ codex mcp login linear
 - `linear-refine` - interview, clarify, and write a ready implementation plan.
 - `linear-implement` - execute a ready plan, update progress, verify, and prepare review.
 - `linear-close` - verify merged PR evidence and close the Linear issue after review.
+- `linear-batch-refine` - list refinement/blocker queues and run `linear-refine` per issue.
+- `linear-batch-implement` - list ready issues, confirm bounded parallelism, and run isolated `linear-implement` subagents.
+- `linear-batch-close` - list review issues, confirm bounded parallelism, and run `linear-close` per issue.
 - `linear-deliver-feature` - run the full create/refine/implement/review/closeout workflow.
 - `linear-status` - inspect an issue and recommend the next workflow step.
 - `linear-doctor` - check required Linear teams, projects, and labels.
@@ -97,6 +100,12 @@ Deliver a feature:
 
 ```text
 Use linear-deliver-feature on HCL-123. Keep Linear updated with the issue description dashboard and status comments.
+```
+
+Process a queue:
+
+```text
+Use linear-batch-implement for H-cloud Linear-AI issues. Show the queue, ask for parallelism, and dispatch isolated linear-implement subagents.
 ```
 
 Close a merged issue:

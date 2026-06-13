@@ -66,6 +66,9 @@ That manifest declares the skill paths explicitly so tools that understand Claud
 - `linear-refine`
 - `linear-implement`
 - `linear-close`
+- `linear-batch-refine`
+- `linear-batch-implement`
+- `linear-batch-close`
 - `linear-deliver-feature`
 - `linear-status`
 - `linear-doctor`

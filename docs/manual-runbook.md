@@ -25,6 +25,16 @@ Use when starting from a rough bug report or feature idea.
 
 Stop when the Linear issue is readable, classified, prioritized, and ready for refinement.
 
+## Batch Queue Runs
+
+Use batch orchestrator skills when multiple issues already carry known Linear AI workflow labels.
+
+- `linear-batch-refine` finds `llm-refine` and `llm-blocked`, shows the queue, asks for confirmation, processes one issue at a time with `linear-refine`, completes a full pass, then groups questions and feedback by issue.
+- `linear-batch-implement` finds `llm-ready` issues with newest valid ready plans, shows the queue, asks for confirmation and maximum parallelism capped at 6, then dispatches isolated `linear-implement` subagents.
+- `linear-batch-close` finds `llm-review` issues, shows the queue, asks for bounded parallelism capped at 6, then dispatches `linear-close` subagents.
+
+All batch skills support dry-run/list-only mode, optional team/project filters, priority then oldest-updated ordering, stale-state re-read before dispatch, one retry on tool/runtime failure, cancellation summaries, structured subagent results, grouped questions, feedback aggregation, and final summaries. Single-issue skills own durable per-issue Linear comments, workflow labels, dashboard updates, PR handoff, closeout mutations, and issue-specific interpretation.
+
 ## Refinement Run
 
 Use when an issue has `llm-refine`.

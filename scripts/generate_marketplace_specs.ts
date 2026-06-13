@@ -71,20 +71,20 @@ function claudeMarketplace(repository: string, version: string, claudeUrl?: stri
       name: "Linear AI"
     },
     metadata: {
-      description: "Linear workflow skills for AI-assisted feature delivery.",
+      description: "Linear workflow skills for AI-assisted feature delivery, including batch refinement, implementation, and closeout orchestration.",
       version
     },
     plugins: [
       {
         name: "linear-ai",
         source,
-        description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, review handoff, and post-merge closeout workflow skills.",
+        description: "Linear issue intake, setup checks, status detection, refinement, implementation, dashboard progress, review handoff, post-merge closeout, and batch queue orchestration workflow skills.",
         version,
         author: {
           name: "Linear AI"
         },
         category: "development",
-        keywords: ["linear", "skills", "workflow", "codex", "claude-code"]
+        keywords: ["linear", "skills", "workflow", "batch", "orchestration", "codex", "claude-code"]
       }
     ]
   };
@@ -96,6 +96,8 @@ function marketplaceReadme(repository: string, version: string): string {
 Marketplace metadata for \`${repository}@v${version}\`.
 
 This repository is an index-only agent marketplace. Plugin manifests point at released source repositories by git URL and tag; plugin source code is not vendored here.
+
+The referenced plugin includes single-issue Linear AI lifecycle skills plus batch orchestrators for refinement, implementation, and closeout queues.
 
 ## Codex
 

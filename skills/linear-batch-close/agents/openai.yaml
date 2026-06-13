@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Batch Close"
+  short_description: "Batch orchestrate post-merge Linear closeout."
+  default_prompt: "Use $linear-batch-close to list llm-review issues, confirm the queue and parallelism, run linear-close per issue, and aggregate closeout results."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for review issue discovery, closeout evidence inspection, and stale-state re-read checks."
+policy:
+  allow_implicit_invocation: true

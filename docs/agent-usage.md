@@ -8,6 +8,9 @@ Prefer the plugin skill names when available:
 - `linear-refine` for questioner/planning.
 - `linear-implement` for implementation.
 - `linear-close` for post-merge closeout.
+- `linear-batch-refine` for refinement and blocker queues.
+- `linear-batch-implement` for ready-plan implementation queues.
+- `linear-batch-close` for post-review closeout queues.
 - `linear-deliver-feature` for the combined create/refine/implement/review/closeout workflow.
 
 ## Shared Invocation Pattern
@@ -114,6 +117,16 @@ Expected output:
 
 Do not use closer to merge PRs or implement code.
 
+## Batch Orchestrators
+
+Use the batch skills when multiple issues are already in known workflow states and the operator wants queue-level orchestration.
+
+- `linear-batch-refine` discovers `llm-refine` and `llm-blocked`, confirms the queue, processes one issue at a time through `linear-refine`, then groups questions and feedback by issue.
+- `linear-batch-implement` discovers `llm-ready` issues with newest valid ready plans, confirms the queue, asks for maximum parallelism capped at 6, and dispatches isolated `linear-implement` subagents.
+- `linear-batch-close` discovers `llm-review` issues, confirms the queue, asks for bounded parallelism capped at 6, and dispatches `linear-close` subagents.
+
+Batch orchestrators do not own per-issue lifecycle mutations. Single-issue skills own marked comments, dashboards, labels, PR handoff, and closeout evidence.
+
 ## Orchestrator
 
 Use `agents/orchestrator.md` manually when you need to decide workflow state.
@@ -168,4 +181,10 @@ Use agents/implementer.md. Implement the newest valid ready plan. Do not guess; 
 Use agents/orchestrator.md. Validate this issue state and tell me the next workflow action.
 
 <paste labels, status, latest marked comments, PR links>
+```
+
+### Batch Implementation
+
+```text
+Use linear-batch-implement for project Linear-AI. Show the eligible queue, ask for confirmation and maximum parallelism, then dispatch per-issue linear-implement subagents.
 ```

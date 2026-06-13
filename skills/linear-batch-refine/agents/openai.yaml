@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Batch Refine"
+  short_description: "Batch orchestrate Linear refinement queues."
+  default_prompt: "Use $linear-batch-refine to list llm-refine and llm-blocked issues, confirm the queue, run linear-refine per issue, and aggregate questions."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for queue discovery, issue re-read checks, and comment inspection."
+policy:
+  allow_implicit_invocation: true
