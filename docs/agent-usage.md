@@ -101,12 +101,12 @@ Use `agents/closer.md`.
 Use when:
 
 - an issue has `llm-review`
-- the implementation PR has been merged
+- the implementation PR has been merged, direct issue-ID commit evidence is present, or squash/import release evidence proves current main contains the expected file/content evidence
 - Linear still needs final Done/status/comment/label cleanup
 
 Expected output:
 
-- merge evidence
+- merge, commit, or release file/content evidence
 - CI evidence
 - mainline containment evidence
 - final marked closeout/status comment

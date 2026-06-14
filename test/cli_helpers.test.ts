@@ -602,6 +602,113 @@ test("closeout verifier rejects unmerged PRs and pending checks", async () => {
   }
 });
 
+test("closeout verifier accepts squash/import release evidence on mainline", async () => {
+  const repoDir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-release-repo-"));
+  const release = await withTempFile("linear-ai-closeout-release-", ".json", JSON.stringify({
+    statusCheckRollup: [
+      { name: "Release main CI", status: "COMPLETED", conclusion: "SUCCESS" }
+    ],
+    files: [
+      { path: "dist/manifest.json", contains: "\"version\":\"2026.06.14\"" }
+    ]
+  }));
+
+  try {
+    assert.equal((await runCommand("git", ["init"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.email", "test@example.com"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.name", "Test User"], repoDir)).code, 0);
+    await mkdir(path.join(repoDir, "dist"), { recursive: true });
+    await writeFile(path.join(repoDir, "dist", "manifest.json"), "{\"version\":\"2026.06.14\",\"source\":\"import\"}\n");
+    assert.equal((await runCommand("git", ["add", "dist/manifest.json"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["commit", "-m", "chore: import release artifacts"], repoDir)).code, 0);
+
+    const result = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-7",
+      "--release",
+      release.file,
+      "--repo",
+      repoDir,
+      "--base",
+      "HEAD"
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok closeout HCL-7 via release evidence/);
+  } finally {
+    await rm(repoDir, { recursive: true, force: true });
+    await rm(release.dir, { recursive: true, force: true });
+  }
+});
+
+test("closeout verifier rejects release evidence without mainline content or successful CI", async () => {
+  const repoDir = await mkdtemp(path.join(os.tmpdir(), "linear-ai-release-reject-repo-"));
+  const wrongContent = await withTempFile("linear-ai-closeout-release-wrong-content-", ".json", JSON.stringify({
+    statusCheckRollup: [
+      { name: "Release main CI", status: "COMPLETED", conclusion: "SUCCESS" }
+    ],
+    files: [
+      { path: "dist/manifest.json", contains: "\"version\":\"2026.06.14\"" }
+    ]
+  }));
+  const failedCi = await withTempFile("linear-ai-closeout-release-failed-ci-", ".json", JSON.stringify({
+    statusCheckRollup: [
+      { name: "Release main CI", status: "COMPLETED", conclusion: "FAILURE" }
+    ],
+    files: [
+      { path: "dist/manifest.json", contains: "\"version\":\"2026.06.13\"" }
+    ]
+  }));
+
+  try {
+    assert.equal((await runCommand("git", ["init"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.email", "test@example.com"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["config", "user.name", "Test User"], repoDir)).code, 0);
+    await mkdir(path.join(repoDir, "dist"), { recursive: true });
+    await writeFile(path.join(repoDir, "dist", "manifest.json"), "{\"version\":\"2026.06.13\",\"source\":\"import\"}\n");
+    assert.equal((await runCommand("git", ["add", "dist/manifest.json"], repoDir)).code, 0);
+    assert.equal((await runCommand("git", ["commit", "-m", "chore: import release artifacts"], repoDir)).code, 0);
+
+    const wrongContentResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-7",
+      "--release",
+      wrongContent.file,
+      "--repo",
+      repoDir,
+      "--base",
+      "HEAD"
+    ]);
+    const failedCiResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-7",
+      "--release",
+      failedCi.file,
+      "--repo",
+      repoDir,
+      "--base",
+      "HEAD"
+    ]);
+    const missingRepoResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-7",
+      "--release",
+      wrongContent.file
+    ]);
+
+    assert.notEqual(wrongContentResult.code, 0);
+    assert.match(wrongContentResult.stderr, /must contain expected release evidence/);
+    assert.notEqual(failedCiResult.code, 0);
+    assert.match(failedCiResult.stderr, /check Release main CI must be successful before closeout/);
+    assert.notEqual(missingRepoResult.code, 0);
+    assert.match(missingRepoResult.stderr, /--release requires --repo/);
+  } finally {
+    await rm(repoDir, { recursive: true, force: true });
+    await rm(wrongContent.dir, { recursive: true, force: true });
+    await rm(failedCi.dir, { recursive: true, force: true });
+  }
+});
+
 test("closeout verifier checks PR commits when closing a moved issue", async () => {
   const movedPr = await withTempFile("linear-ai-closeout-moved-pr-", ".json", JSON.stringify({
     url: "https://github.com/example/linear-ai/pull/7",

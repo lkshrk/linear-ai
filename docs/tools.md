@@ -175,9 +175,25 @@ gh pr view <PR> --json url,state,isDraft,baseRefName,mergeCommit,statusCheckRoll
 bun scripts/verify_closeout.ts --issue-id CIV-999 --pr pr.json --repo . --base origin/main
 bun scripts/verify_closeout.ts --issue-id CIV-999 --commit commit.json --repo . --base origin/main
 bun scripts/verify_closeout.ts --issue-id ENG-22 --implemented-issue-id CIV-999 --commit commit.json --repo . --base origin/main
+bun scripts/verify_closeout.ts --issue-id CIV-999 --release release.json --repo . --base origin/main
 ```
 
-The gate requires either a merged PR with a merge commit or direct commit evidence mentioning the issue ID. When a Linear issue has been moved to another team and the current issue key has a different prefix from the implemented issue key, pass `--implemented-issue-id` so commit evidence is checked against the old ID while closeout targets the current ID. For PR evidence with this override, the PR JSON must include commits and at least one commit must mention the old implemented ID. Both paths require at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit or direct issue-ID commit.
+The gate requires a merged PR with a merge commit, direct commit evidence mentioning the issue ID, or squash/import release evidence. When a Linear issue has been moved to another team and the current issue key has a different prefix from the implemented issue key, pass `--implemented-issue-id` so commit evidence is checked against the old ID while closeout targets the current ID. For PR evidence with this override, the PR JSON must include commits and at least one commit must mention the old implemented ID. PR and commit paths require at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit or direct issue-ID commit.
+
+For squash/import release closeout, `release.json` must include successful release/main checks plus file assertions that are read from the selected mainline ref:
+
+```json
+{
+  "statusCheckRollup": [
+    { "name": "Release main CI", "status": "COMPLETED", "conclusion": "SUCCESS" }
+  ],
+  "files": [
+    { "path": "dist/manifest.json", "contains": "\"version\":\"2026.06.14\"" }
+  ]
+}
+```
+
+Release file assertions support `contains` or `equals`. The release path requires `--repo`, because the helper verifies the expected file/content evidence with `git show <base>:<path>`.
 
 ## Linear Metadata Helper
 

@@ -22,6 +22,7 @@ type ParsedArgs = {
   implementedIssueId?: string;
   prPath?: string;
   commitPath?: string;
+  releasePath?: string;
   repoPath?: string;
   baseRef: string;
 };
@@ -41,12 +42,21 @@ function parseArgs(argv: string[]): ParsedArgs {
   const implementedIssueId = args.get("--implemented-issue-id");
   const prPath = args.get("--pr");
   const commitPath = args.get("--commit");
-  if (!issueId || (!prPath && !commitPath) || (prPath && commitPath)) {
-    throw new CloseoutError("usage: bun scripts/verify_closeout.ts --issue-id ISSUE-ID [--implemented-issue-id OLD-ISSUE-ID] (--pr pr.json | --commit commit.json) [--repo path] [--base origin/main]");
+  const releasePath = args.get("--release");
+  const evidencePathCount = [prPath, commitPath, releasePath].filter(Boolean).length;
+  if (!issueId || evidencePathCount !== 1) {
+    throw new CloseoutError("usage: bun scripts/verify_closeout.ts --issue-id ISSUE-ID [--implemented-issue-id OLD-ISSUE-ID] (--pr pr.json | --commit commit.json | --release release.json) [--repo path] [--base origin/main]");
   }
 
-  if (implementedIssueId) {
+  if (implementedIssueId && releasePath) {
+    throw new CloseoutError("--implemented-issue-id cannot be combined with --release");
+  } else if (implementedIssueId) {
     requireCrossTeamIssueMove(issueId, implementedIssueId);
+  }
+
+  const repoPath = args.get("--repo");
+  if (releasePath && !repoPath) {
+    throw new CloseoutError("--release requires --repo so file evidence can be checked on mainline");
   }
 
   return {
@@ -54,7 +64,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     implementedIssueId,
     prPath,
     commitPath,
-    repoPath: args.get("--repo"),
+    releasePath,
+    repoPath,
     baseRef: args.get("--base") ?? DEFAULT_BASE
   };
 }
@@ -84,7 +95,7 @@ function requireMergedPr(pr: Mapping): string {
   return mergeCommit;
 }
 
-function requireSuccessfulChecks(evidence: Mapping, evidenceName: "PR" | "commit"): void {
+function requireSuccessfulChecks(evidence: Mapping, evidenceName: "PR" | "commit" | "release"): void {
   const checks = Array.isArray(evidence.statusCheckRollup)
     ? evidence.statusCheckRollup
     : Array.isArray(evidence.checks)
@@ -146,10 +157,58 @@ async function requireMainlineContainsCommit(repoPath: string | undefined, baseR
   }
 }
 
-async function loadJson(path: string, evidenceName: "PR" | "commit"): Promise<Mapping> {
+async function loadJson(path: string, evidenceName: "PR" | "commit" | "release"): Promise<Mapping> {
   const parsed = JSON.parse(await readFile(path, "utf8")) as unknown;
   if (!isMapping(parsed)) throw new CloseoutError(`${evidenceName} JSON must be an object`);
   return parsed;
+}
+
+function requireRelativeRepoPath(path: string): void {
+  if (path.startsWith("/") || path.includes("\0") || path.split("/").includes("..")) {
+    throw new CloseoutError(`release file path must be a relative repo path: ${path}`);
+  }
+}
+
+async function readMainlineFile(repoPath: string, baseRef: string, path: string): Promise<string> {
+  requireRelativeRepoPath(path);
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", repoPath, "show", `${baseRef}:${path}`], {
+      maxBuffer: 10 * 1024 * 1024
+    });
+    return stdout;
+  } catch {
+    throw new CloseoutError(`mainline ${baseRef} must contain expected file ${path}`);
+  }
+}
+
+async function requireReleaseFileEvidence(release: Mapping, repoPath: string | undefined, baseRef: string): Promise<void> {
+  if (!repoPath) throw new CloseoutError("--release requires --repo so file evidence can be checked on mainline");
+  const files = Array.isArray(release.files)
+    ? release.files
+    : Array.isArray(release.fileEvidence)
+      ? release.fileEvidence
+      : [];
+  if (files.length === 0) {
+    throw new CloseoutError("release evidence must include at least one file assertion");
+  }
+
+  for (const file of files) {
+    if (!isMapping(file)) throw new CloseoutError("release file assertions must be mappings");
+    const path = stringValue(file.path);
+    if (!path) throw new CloseoutError("release file assertion must include path");
+    const content = await readMainlineFile(repoPath, baseRef, path);
+    const contains = stringValue(file.contains);
+    const equals = stringValue(file.equals);
+    if (!contains && equals === undefined) {
+      throw new CloseoutError(`release file assertion for ${path} must include contains or equals`);
+    }
+    if (contains && !content.includes(contains)) {
+      throw new CloseoutError(`mainline ${baseRef} file ${path} must contain expected release evidence`);
+    }
+    if (equals !== undefined && content !== equals) {
+      throw new CloseoutError(`mainline ${baseRef} file ${path} must equal expected release evidence`);
+    }
+  }
 }
 
 function requireIssueCommit(commit: Mapping, issueId: string): string {
@@ -184,9 +243,14 @@ async function main(argv: string[]): Promise<number> {
       const oid = requireIssueCommit(commit, evidenceIssueId);
       requireSuccessfulChecks(commit, "commit");
       await requireMainlineContainsCommit(args.repoPath, args.baseRef, oid, "commit");
+    } else if (args.releasePath) {
+      const release = await loadJson(args.releasePath, "release");
+      requireSuccessfulChecks(release, "release");
+      await requireReleaseFileEvidence(release, args.repoPath, args.baseRef);
     }
     const movedSuffix = args.implementedIssueId ? ` via implemented issue ${args.implementedIssueId}` : "";
-    console.log(`ok closeout ${args.issueId}${movedSuffix}`);
+    const releaseSuffix = args.releasePath ? " via release evidence" : "";
+    console.log(`ok closeout ${args.issueId}${movedSuffix}${releaseSuffix}`);
     return 0;
   } catch (error) {
     console.error((error as Error).message);

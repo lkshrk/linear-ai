@@ -25,7 +25,7 @@ Recommended status transitions:
 - `llm-active` -> In Progress.
 - `llm-blocked` -> Blocked if the team uses that status; otherwise keep current status and rely on label.
 - `llm-review` -> In Review.
-- merged PR -> Done through `linear-close` after merge, mainline, and CI evidence is verified.
+- merged PR or verified squash/import release evidence -> Done through `linear-close` after merge or release file/content evidence, mainline, and CI evidence is verified.
 
 Labels and statuses can coexist. The label is the AI state machine. The status is the team planning signal.
 
@@ -68,15 +68,16 @@ When a standalone lifecycle skill finishes its current phase, it asks whether th
 
 ## Closeout Lifecycle
 
-1. Closer finds an issue with `llm-review` and a linked PR, direct issue-ID commit evidence, old implemented issue-ID evidence from a cross-team move, or review-ready status comment.
+1. Closer finds an issue with `llm-review` and a linked PR, direct issue-ID commit evidence, old implemented issue-ID evidence from a cross-team move, squash/import release file/content evidence, or review-ready status comment.
 2. Closer verifies the linked PR is merged for PR-based closeout, or verifies direct commit evidence mentions the issue ID for commit-based closeout. If the current issue ID and implemented issue ID have different Linear team prefixes because the issue was moved to another team, closer verifies the old implemented ID according to the same rules and closes the current issue with a note naming both IDs.
-3. Closer verifies mainline contains the merge commit or direct issue-ID commit, either with local Git or reliable remote evidence.
-4. Closer verifies CI is complete and successful for the merged PR, merge commit, or direct issue-ID commit.
-5. Closer updates the issue description dashboard when a marked dashboard block is present.
-6. Closer posts one final immutable closeout/status comment with merge evidence, CI evidence, dashboard evidence, and final mutations.
-7. Closer moves the issue to `Done`, removes all `llm-*` labels, and preserves cumulative `sp-*` labels.
+3. For squash/import release closeout, closer verifies current main contains the expected file/content evidence and release/main CI passed.
+4. Closer verifies mainline contains the merge commit, direct issue-ID commit, expected release file/content evidence, or equivalent remote evidence.
+5. Closer verifies CI is complete and successful for the merged PR, merge commit, direct issue-ID commit, or release/main evidence.
+6. Closer updates the issue description dashboard when a marked dashboard block is present.
+7. Closer posts one final immutable closeout/status comment with merge or release evidence, CI evidence, dashboard evidence, and final mutations.
+8. Closer moves the issue to `Done`, removes all `llm-*` labels, and preserves cumulative `sp-*` labels.
 
-If merged PR or direct issue-ID commit evidence, moved old-ID implementation evidence, mainline evidence, or CI evidence is missing, closer must not move the issue to `Done`. It reports the missing evidence and leaves the issue in review state. If Linear writes are unavailable after evidence is proven, closer emits `REQUIRED_LINEAR_MUTATIONS` with the final closeout comment, dashboard update, `Done` status, and label cleanup.
+If merged PR or direct issue-ID commit evidence, moved old-ID implementation evidence, squash/import release file/content evidence, mainline evidence, or CI evidence is missing, closer must not move the issue to `Done`. It reports the missing evidence and leaves the issue in review state. If Linear writes are unavailable after evidence is proven, closer emits `REQUIRED_LINEAR_MUTATIONS` with the final closeout comment, dashboard update, `Done` status, and label cleanup.
 
 ## Plan Revision Rule
 

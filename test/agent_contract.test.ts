@@ -347,7 +347,7 @@ test("linear deliver feature defines an explicit lifecycle state machine", async
   assert.match(skill, /resume from the detected phase/);
 });
 
-test("linear close skill defines PR or commit closeout guard", async () => {
+test("linear close skill defines PR, commit, or release closeout guard", async () => {
   const closeSkill = await readDoc("skills/linear-close/SKILL.md");
   const closeAgent = await readAgent("closer");
   const workflowDoc = await readDoc("docs/workflow.md");
@@ -355,6 +355,8 @@ test("linear close skill defines PR or commit closeout guard", async () => {
   for (const source of [closeSkill, closeAgent, workflowDoc]) {
     assert.match(source, /merged PR/i);
     assert.match(source, /issue-ID commit/i);
+    assert.match(source, /squash\/import release/i);
+    assert.match(source, /file\/content evidence/i);
     assert.match(source, /mainline|main/i);
     assert.match(source, /CI/i);
     assert.match(source, /Done/);

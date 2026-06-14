@@ -1,7 +1,7 @@
 interface:
   display_name: "Linear Close"
-  short_description: "Close merged Linear issues with evidence."
-  default_prompt: "Use $linear-close to verify merged PR evidence and close this Linear issue."
+  short_description: "Close reviewed Linear issues with PR, commit, or release evidence."
+  default_prompt: "Use $linear-close to verify merged PR, direct issue-ID commit, or squash/import release evidence and close this Linear issue."
 dependencies:
   tools:
     - type: "mcp"

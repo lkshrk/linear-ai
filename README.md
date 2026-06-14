@@ -7,7 +7,7 @@ It gives agents a repeatable path for one issue:
 1. Create or clean up the Linear issue.
 2. Refine it into an implementation-ready plan.
 3. Track progress in one dashboard block in the issue description.
-4. Implement, verify, hand off for review, and close after merge or verified issue-ID commit evidence.
+4. Implement, verify, hand off for review, and close after merge, verified issue-ID commit evidence, or verified squash/import release evidence.
 
 ## Install
 
@@ -68,7 +68,7 @@ codex mcp login linear
 - `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.
 - `linear-refine` - interview, clarify, and write a ready implementation plan.
 - `linear-implement` - execute a ready plan, update progress, verify, and prepare review.
-- `linear-close` - verify merged PR or direct issue-ID commit evidence and close the Linear issue after review.
+- `linear-close` - verify merged PR, direct issue-ID commit, or squash/import release evidence and close the Linear issue after review.
 - `linear-batch-refine` - list refinement/blocker queues and run `linear-refine` per issue.
 - `linear-batch-implement` - list ready issues, confirm bounded parallelism, and run isolated `linear-implement` subagents.
 - `linear-batch-close` - list review issues, confirm bounded parallelism, and run `linear-close` per issue.
@@ -108,10 +108,10 @@ Process a queue:
 Use linear-batch-implement for H-cloud Linear-AI issues. Show the queue, ask for parallelism, and dispatch isolated linear-implement subagents.
 ```
 
-Close a reviewed issue after a merged PR or direct issue-ID commit:
+Close a reviewed issue after a merged PR, direct issue-ID commit, or squash/import release:
 
 ```text
-Use linear-close on HCL-123 after the PR is merged or an issue-ID commit is on main with passing checks.
+Use linear-close on HCL-123 after the PR is merged, an issue-ID commit is on main, or current main has the expected release file/content evidence with passing release/main checks.
 ```
 
 ## Local Development
