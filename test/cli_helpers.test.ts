@@ -925,6 +925,57 @@ draft_prs: []
   }
 });
 
+test("handoff verifier accepts master final destination", async () => {
+  const status = await withTempFile("linear-ai-master-destination-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `final_destination: master
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-master-destination-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok handoff CIV-999/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
+test("handoff verifier rejects PR links for feature branch destination", async () => {
+  const status = await withTempFile("linear-ai-branch-destination-pr-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `final_destination: feature_branch
+draft_prs:
+  - repository: web
+    url: https://github.com/example/web/pull/999
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-branch-destination-pr-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file
+    ]);
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /draft_prs must be empty when final_destination is feature_branch/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
 test("handoff verifier rejects bad commit subject", async () => {
   const status = await withTempFile("linear-ai-bad-handoff-status-", ".md", `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
 \`\`\`yaml

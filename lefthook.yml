@@ -1,5 +1,5 @@
 pre-commit:
-  parallel: true
+  parallel: false
   jobs:
     - name: tests
       run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX bun test

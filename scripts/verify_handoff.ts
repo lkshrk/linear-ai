@@ -108,6 +108,9 @@ function validateStatus(status: Mapping, issueId: string): void {
   if (!["main", "master", "feature_branch", "feature_branch_pr"].includes(String(status.final_destination))) {
     throw new HandoffError("final_destination must be main, master, feature_branch, or feature_branch_pr");
   }
+  if (status.final_destination === "feature_branch" && Array.isArray(status.draft_prs) && status.draft_prs.length > 0) {
+    throw new HandoffError("draft_prs must be empty when final_destination is feature_branch");
+  }
 
   const cleanup = status.workspace_cleanup;
   if (!isMapping(cleanup)) throw new HandoffError("workspace_cleanup is required");
