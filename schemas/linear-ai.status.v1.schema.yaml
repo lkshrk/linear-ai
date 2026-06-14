@@ -156,6 +156,8 @@ properties:
   final_destination:
     enum:
       - main
+      - master
+      - feature_branch
       - feature_branch_pr
       - undecided
   workspace_cleanup:

@@ -57,12 +57,13 @@ An interview is finished only when all material questions are answered or the hu
 2. Orchestrator reads the newest valid marked plan comment where `plan_status: ready`.
 3. Orchestrator removes all other `llm-*` states, adds `llm-active`, and moves the issue to In Progress.
 4. Implementer works in an isolated issue worktree or equivalent isolated git worktree.
-5. Implementer opens a draft PR as soon as useful implementation state exists.
-6. Implementer posts marked status comments with completed work, verification, placeholders, and batched questions.
-7. If questions block further safe work, orchestrator removes all other `llm-*` states and adds `llm-blocked`.
-8. Questioner resumes refinement and writes a new plan revision.
-9. Orchestrator removes `llm-blocked`, adds `llm-active`, and requeues implementation when the newest plan revision resolves the blocker.
-10. When complete, orchestrator removes all other `llm-*` states, adds `llm-review`, moves the issue to In Review, and marks the PR ready.
+5. Implementer completes and verifies the ready plan in the issue worktree, then asks the human whether the finished code should be merged to the default branch (`main` or `master`), left on a feature branch without PR, or put on a feature branch with PR.
+6. Implementer performs only the chosen destination action; it does not infer the destination from branch metadata, issue worktrees, draft PRs, or local convention.
+7. Implementer posts marked status comments with completed work, verification, placeholders, batched questions, and the chosen `final_destination`.
+8. If questions block further safe work, orchestrator removes all other `llm-*` states and adds `llm-blocked`.
+9. Questioner resumes refinement and writes a new plan revision.
+10. Orchestrator removes `llm-blocked`, adds `llm-active`, and requeues implementation when the newest plan revision resolves the blocker.
+11. When complete and the destination is explicit, orchestrator removes all other `llm-*` states, adds `llm-review`, moves the issue to In Review, and marks the PR ready only when the chosen destination includes a PR.
 
 When a standalone lifecycle skill finishes its current phase, it asks whether there is anything else to add for that phase. If the answer is no, it asks whether the user wants to continue with the recommended next workflow skill, names that skill, and waits for confirmation instead of auto-running it. This standalone continuation prompt does not replace evidence gates, marked comments, dashboards, label/status mutations, or stop conditions.
 

@@ -43,7 +43,7 @@ recommended_labels_to_remove:
 recommended_status: Blocked
 commits:
   - subject: "fix(TEAM-123): handle blocked workflow state"
-final_destination: undecided # main | feature_branch_pr | undecided
+final_destination: undecided # main/master | feature_branch | feature_branch_pr | undecided
 workspace_cleanup:
   status: pending # cleaned | intentionally_kept | pending
   kept: []
@@ -75,7 +75,7 @@ Short implementation status.
 
 ## PRs
 
-- `backend` - draft PR link.
+- `backend` - draft PR link, when `final_destination` is `feature_branch_pr`.
 
 ## Commits
 

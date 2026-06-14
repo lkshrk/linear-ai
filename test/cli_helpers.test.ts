@@ -900,6 +900,31 @@ test("handoff verifier accepts review-ready dashboard from issue description", a
   }
 });
 
+test("handoff verifier accepts feature branch destination without PR", async () => {
+  const status = await withTempFile("linear-ai-branch-destination-status-", ".md", markedStatus(reviewReadyStatusYaml(
+    `final_destination: feature_branch
+draft_prs: []
+`
+  )));
+  const dashboard = await withTempFile("linear-ai-branch-destination-dashboard-", ".md", markedDashboard(reviewReadyDashboardYaml()));
+  try {
+    const result = await runBun("verify_handoff.ts", [
+      "--issue-id",
+      "CIV-999",
+      "--status",
+      status.file,
+      "--dashboard",
+      dashboard.file
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok handoff CIV-999/);
+  } finally {
+    await rm(status.dir, { recursive: true, force: true });
+    await rm(dashboard.dir, { recursive: true, force: true });
+  }
+});
+
 test("handoff verifier rejects bad commit subject", async () => {
   const status = await withTempFile("linear-ai-bad-handoff-status-", ".md", `<!-- linear-ai:status v1 issue=CIV-999 plan_rev=1 status_rev=1 -->
 \`\`\`yaml
@@ -1114,7 +1139,7 @@ test("handoff verifier rejects undecided final destination", async () => {
     const result = await runBun("verify_handoff.ts", ["--issue-id", "CIV-999", "--status", status.file, "--dashboard", dashboard.file]);
 
     assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /final_destination must be main or feature_branch_pr/);
+    assert.match(result.stderr, /final_destination must be main, master, feature_branch, or feature_branch_pr/);
   } finally {
     await rm(status.dir, { recursive: true, force: true });
     await rm(dashboard.dir, { recursive: true, force: true });

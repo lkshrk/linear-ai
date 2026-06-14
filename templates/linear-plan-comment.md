@@ -81,7 +81,7 @@ None.
 ## Do Not Assume
 
 - Do not use a different issue worktree, Git ref, or PR title unless the human updates the plan.
-- A feature branch with PR is a final destination option, not the primary workspace where implementation happens.
+- Default branch merge, feature branch without PR, and feature branch with PR are final destination options, not the primary workspace where implementation happens.
 - Product behavior not stated in this comment must be clarified before implementation.
 
 ## REQUIRED_LINEAR_MUTATIONS

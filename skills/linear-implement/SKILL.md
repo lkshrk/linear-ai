@@ -1,6 +1,6 @@
 ---
 name: linear-implement
-description: "Execute a ready Linear implementation plan: make code changes, verify them, open or update PRs, and post marked implementation status comments. Use when a Linear issue already has a ready plan and needs implementation."
+description: "Execute a ready Linear implementation plan: make code changes, verify them, ask for the final code destination, and post marked implementation status comments. Use when a Linear issue already has a ready plan and needs implementation."
 ---
 
 # Linear Implement
@@ -50,7 +50,13 @@ Clean up temporary lane worktrees after merge-back and verification. Keep tempor
 
 ## Commit and Destination Policy
 
-Before finalizing, ask whether the result should end up on `main` or on a feature branch with PR. Do not assume when both are viable.
+Do not choose the final code destination. After implementation and verification are complete, but before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting a review-ready handoff, ask the human which destination to use:
+
+- merge to the default branch (`main` or `master`)
+- create or update a feature branch without a PR
+- create or update a feature branch with a PR
+
+Record the answer in `final_destination` as `main`, `master`, `feature_branch`, or `feature_branch_pr`. If the answer is missing, ambiguous, or still `undecided`, stop with `llm-blocked` or emit `REQUIRED_LINEAR_MUTATIONS`; do not infer from the plan, branch name, existing issue worktree, or existing draft PR.
 
 Leave a reasonable amount of commits: split by reviewable behavior or risk boundary, not by every tiny edit and not as one unrelated bulk commit.
 
@@ -62,9 +68,9 @@ fix(HCL-123): repair status extraction
 test(HCL-123): cover dashboard validation
 ```
 
-Report the final commit list and destination in the status comment.
+Report the final commit list and chosen destination in the status comment.
 
-Before review-ready handoff, confirm temporary lane worktrees were cleaned up and the issue worktree cleanup state is explicitly listed as cleaned or intentionally kept.
+Before review-ready handoff, confirm the final destination was explicitly chosen, temporary lane worktrees were cleaned up, and the issue worktree cleanup state is explicitly listed as cleaned or intentionally kept.
 
 ## Linear MCP Contract
 

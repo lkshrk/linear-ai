@@ -1,13 +1,13 @@
 # Implementer Contract
 
-The implementer turns a ready Linear plan into code, tests, and a draft PR. It implements all unambiguous work and reports anything that cannot be completed without guessing.
+The implementer turns a ready Linear plan into code, tests, and a human-chosen final destination. It implements all unambiguous work and reports anything that cannot be completed without guessing.
 
 ## Goals
 
 - read the newest valid ready plan
 - implement every unambiguous checklist item
 - avoid assumptions
-- open or update a draft PR
+- ask for the final code destination before any push, merge, PR, or review-ready handoff
 - post status, verification, placeholders, and batched questions
 
 ## Inputs
@@ -18,14 +18,14 @@ Required:
 - newest marked plan comment with `plan_status: ready`
 - target repository or repositories
 - issue worktree instructions and Git ref plumbing
-- PR title instructions
+- PR title instructions when the human chooses a PR destination
 - required implementer permission context for the invocation path
 
 Optional:
 
 - LeanKG or local code graph context
 - prior implementation status comment
-- existing draft PR
+- existing draft PR or branch
 - linked docs or ADRs
 
 ## Operating Rules
@@ -50,9 +50,9 @@ Optional:
 - Run in auto mode for safe, reversible implementation work from a valid ready plan. Continue through ordinary repo inspection, TDD planning, local edits, tests, validation, dashboard updates, and failed-check iteration without asking for permission between steps.
 - Ask questions in batches only when the next step is destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority, or genuinely ambiguous in a way that would create nontrivial rework.
 - Use the Git ref specified by Linear or by the newest ready plan for the issue worktree.
-- Use the PR title specified by the newest ready plan.
-- If no PR title is specified, stop and ask before opening the PR.
-- Keep the draft PR current with completed work.
+- Use the PR title specified by the newest ready plan when the human chooses a PR destination.
+- If no PR title is specified and the human chooses a PR destination, stop and ask before opening the PR.
+- Do not open, update, mark ready, or rely on a draft PR unless the human has chosen the PR destination or the ready plan explicitly requires a PR.
 - Clearly mark partial work.
 - Do not fake tests or make tests pass by weakening assertions.
 - Do not encode temporary behavior that could be mistaken for confirmed behavior.
@@ -115,9 +115,26 @@ Do not dispatch parallel code-changing subagents into the same working tree. If 
 
 Clean up temporary lane worktrees after their lane is merged and verified. If a temporary lane worktree is intentionally kept for follow-up, report its path, branch, owner, and reason in the status comment.
 
-## PR Rules
+## Final Destination Gate
 
-Open a draft PR when useful implementation state exists, even if incomplete.
+Implementation happens in the issue worktree first. After implementation and verification are complete, ask the human what to do with the finished code before performing any destination action.
+
+The allowed choices are:
+
+- merge to the default branch (`main` or `master`)
+- create or update a feature branch without a PR
+- create or update a feature branch with a PR
+
+Record the answer in the status comment as:
+
+- `final_destination: main`
+- `final_destination: master`
+- `final_destination: feature_branch`
+- `final_destination: feature_branch_pr`
+
+Do not infer the destination from the issue worktree name, Linear branch metadata, a branch created for isolation, an existing draft PR, or prior local convention. If the human has not explicitly chosen one of the destinations, keep `final_destination: undecided`, do not apply `llm-review`, and post a blocked status question.
+
+## Branch and PR Rules
 
 Issue worktree Git ref source of truth:
 
@@ -125,14 +142,14 @@ Issue worktree Git ref source of truth:
 2. Linear issue branch metadata.
 3. If neither exists, ask before creating the issue worktree ref.
 
-PR title source of truth:
+PR title source of truth when the PR destination is chosen:
 
 1. Explicit PR title in the newest ready plan.
 2. If missing, ask before opening the PR.
 
-Use the same draft PR for later plan revisions unless scope changes enough that a new PR is cleaner.
+Use the same draft PR for later plan revisions when the human chose a PR destination unless scope changes enough that a new PR is cleaner.
 
-Before finalizing completed work, ask whether the result should end up on `main` or on a feature branch with PR. The feature branch is the PR destination, distinct from the issue worktree where implementation happens. Do not assume the destination when both are viable.
+Before finalizing completed work, ask whether the result should be merged to the default branch (`main` or `master`), left on a feature branch without PR, or put on a feature branch with PR. The destination branch or PR is distinct from the issue worktree where implementation happens. Do not assume the destination when more than one is technically possible.
 
 At a completed blocker, abandoned, or review-ready implementation handoff, ask whether there is anything else to add. If the answer is no, ask whether the user wants to continue with the recommended next skill, normally `linear-refine` for blockers or `linear-close` after merge evidence exists. Name the recommended skill or review action and wait for confirmation; do not auto-run it.
 
@@ -158,7 +175,7 @@ docs(HCL-123): document repo-local usage
 
 Allowed commit types include `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`, and `ci`. Use `!` for breaking changes, for example `feat(HCL-123)!: change dashboard schema`.
 
-Each commit should compile or clearly state why it is an intermediate checkpoint. Before final handoff, report the commit list and whether the work is on `main` or a feature branch with PR.
+Each commit should compile or clearly state why it is an intermediate checkpoint. Before final handoff, report the commit list and whether the work is on `main`/`master`, a feature branch without PR, or a feature branch with PR.
 
 ## Workspace Cleanup
 
@@ -197,7 +214,7 @@ That plan should include:
 - commands that prove the tests pass
 - commit checkpoints
 - planned commit boundaries using semver syntax and the issue ID
-- final destination question: `main` or feature branch with PR
+- final destination question: default branch (`main`/`master`), feature branch without PR, or feature branch with PR
 - workspace cleanup plan for temporary lane worktrees and the persistent issue worktree
 
 If the implementer cannot write a concrete TDD plan without guessing, it must ask batched questions instead of coding.
@@ -212,7 +229,7 @@ Required status sections:
 - skipped or blocked work
 - batched questions
 - verification run
-- draft PR link
+- draft PR link when the PR destination was chosen
 - placeholders
 - recommended next state
 

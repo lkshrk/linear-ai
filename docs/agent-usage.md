@@ -85,7 +85,8 @@ Use when:
 Expected output:
 
 - code changes in the target repo or repos
-- draft PR link or update
+- explicit final destination answer: default branch (`main`/`master`), feature branch without PR, or feature branch with PR
+- branch or PR evidence matching the chosen destination
 - marked status comment
 - completed checklist items
 - batched questions if blocked

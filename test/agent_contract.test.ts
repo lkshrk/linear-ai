@@ -133,7 +133,7 @@ test("implementer uses an isolated issue worktree as the primary workspace", asy
   }
 });
 
-test("implementer enforces commit hygiene and asks final branch destination", async () => {
+test("implementer enforces commit hygiene and asks explicit final destination", async () => {
   const implementerAgent = await readAgent("implementer");
   const implementerDoc = await readDoc("docs/implementer.md");
   const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
@@ -142,9 +142,14 @@ test("implementer enforces commit hygiene and asks final branch destination", as
     assert.match(source, /reasonable amount of commits/i);
     assert.match(source, /semver/i);
     assert.match(source, /issue ID/i);
-    assert.match(source, /main/i);
+    assert.match(source, /main.*master|master.*main/is);
     assert.match(source, /feature branch/i);
     assert.match(source, /PR/i);
+    assert.match(source, /without (a )?PR/i);
+    assert.match(source, /feature_branch/);
+    assert.match(source, /feature_branch_pr/);
+    assert.match(source, /do not infer/i);
+    assert.match(source, /undecided/i);
   }
 });
 

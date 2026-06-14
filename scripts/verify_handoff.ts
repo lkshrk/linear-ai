@@ -105,8 +105,8 @@ function validateStatus(status: Mapping, issueId: string): void {
     if (!isMapping(item) || item.result !== "passed") throw new HandoffError(`verification[${index}].result must be passed`);
   }
 
-  if (!["main", "feature_branch_pr"].includes(String(status.final_destination))) {
-    throw new HandoffError("final_destination must be main or feature_branch_pr");
+  if (!["main", "master", "feature_branch", "feature_branch_pr"].includes(String(status.final_destination))) {
+    throw new HandoffError("final_destination must be main, master, feature_branch, or feature_branch_pr");
   }
 
   const cleanup = status.workspace_cleanup;

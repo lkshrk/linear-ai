@@ -259,7 +259,7 @@ function validateStatus(data: Mapping, options: ValidatorOptions = {}): void {
   requireKnownLabels(data, "recommended_labels_to_apply", options.knownLabels);
   requireKnownLabels(data, "recommended_labels_to_remove", options.knownLabels);
   requireItemFields(requireArray(data, "commits"), "commits", ["subject"]);
-  if (!["main", "feature_branch_pr", "undecided"].includes(String(data.final_destination))) {
+  if (!["main", "master", "feature_branch", "feature_branch_pr", "undecided"].includes(String(data.final_destination))) {
     throw new ValidationError("final_destination is invalid");
   }
   const cleanup = data.workspace_cleanup;
