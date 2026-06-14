@@ -1,11 +1,11 @@
 ---
 name: linear-close
-description: "Finalize a Linear issue after review: verify merged PR evidence or issue-ID commit evidence, update dashboard/status evidence, move the issue to Done, and clear LLM workflow labels."
+description: "Finalize a Linear issue after review: verify merged PR evidence or issue-ID commit evidence, including moved cross-team issue IDs, update dashboard/status evidence, move the issue to Done, and clear LLM workflow labels."
 ---
 
 # Linear Close
 
-Use this after implementation review when a PR has been merged or a direct issue-ID commit is present and the Linear issue still needs final closeout.
+Use this after implementation review when a PR has been merged or a direct issue-ID commit is present and the Linear issue still needs final closeout. If the current Linear issue ID and the implemented issue ID recorded in the ticket evidence have different team prefixes because the issue was moved to another team, manually verify the old implemented ID according to the same closeout rules, then close the current issue with a note naming both IDs.
 
 Read and follow:
 
@@ -52,7 +52,10 @@ Validate closeout evidence with:
 ```sh
 scripts/verify_closeout.ts --issue-id <ISSUE-ID> --pr pr.json --repo . --base origin/main
 scripts/verify_closeout.ts --issue-id <ISSUE-ID> --commit commit.json --repo . --base origin/main
+scripts/verify_closeout.ts --issue-id <CURRENT-ISSUE-ID> --implemented-issue-id <OLD-ISSUE-ID> --commit commit.json --repo . --base origin/main
 ```
+
+Use `--implemented-issue-id` only when the current issue key and implemented issue key have different Linear team prefixes after an issue move. For PR evidence, include PR commits so the helper can verify a commit mentions the old implemented ID. The closeout comment must state that `<CURRENT-ISSUE-ID>` was moved from or implemented under `<OLD-ISSUE-ID>`, and that implementation, mainline, and CI evidence were manually verified against the old ID.
 
 Validate final marked comments and the issue description dashboard with:
 
@@ -68,6 +71,7 @@ Before moving the issue to `Done`, prove all of the following:
 
 - the linked PR is merged
 - or direct commit evidence contains the issue ID
+- or, for a cross-team moved issue, PR commit evidence or direct commit evidence contains the old implemented issue ID and the current issue ID has a different team prefix
 - mainline contains the merge commit, the direct issue-ID commit, or equivalent remote mainline evidence
 - CI is complete and successful for the merged PR, merge commit, or direct issue-ID commit
 - final dashboard/status evidence does not contradict closeout
@@ -81,7 +85,7 @@ If any required evidence is missing, do not close the issue. Post blocked eviden
 Successful closeout must:
 
 - update the marked dashboard block in the issue description when present
-- post one final immutable marked status/closeout comment
+- post one final immutable marked status/closeout comment, including both IDs when closeout used an old implemented issue ID after a team move
 - move Linear status to `Done`
 - remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
 - preserve cumulative `sp-*` labels such as `sp-clarify`, `sp-plan`, `sp-tdd`, `sp-implement`, `sp-verify`, and `sp-review`

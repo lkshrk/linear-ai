@@ -20,7 +20,7 @@ Start by running `linear-status` against the actual Linear issue. Use the detect
 5. `implement` - run `linear-implement` only after the ready plan exists, the Superpowers task list is mirrored into the issue description dashboard, and the same required implementer permission context used by direct runs has been passed or confirmed. That context includes workspace write access, package manager and verification command permission, Linear MCP read/write tools, Git/GitHub tools when branch or PR work is in scope, and required project MCP tools. Make code changes, run verification, update the dashboard before moving between top-level tasks, and post marked status comments only for blockers, review readiness, abandoned work, verification failures, handoffs, or write-unavailable mutations.
 6. `validate-comments` - run `scripts/validate_marked_comments.ts` against the final plan/status comments and issue description dashboard before claiming the workflow is ready for review.
 7. `review-handoff` - confirm PRs or patches are ready, verification evidence is present, and the issue has exactly one workflow state label: `llm-review` when review is ready, or `llm-blocked` when not.
-8. `closeout` - run `linear-close` after review only when the PR is merged; verify merged PR, mainline, and CI evidence, then move the issue to `Done`, remove all `llm-*` labels, preserve cumulative `sp-*` labels, update the dashboard, and post final closeout evidence.
+8. `closeout` - run `linear-close` after review only when the PR is merged; verify merged PR, mainline, and CI evidence, then move the issue to `Done`, remove all `llm-*` labels, preserve cumulative `sp-*` labels, update the dashboard, and post final closeout evidence. If the current issue ID and the implemented issue ID in ticket evidence have different Linear team prefixes because the issue was moved to another team, manually verify the old implemented ID under the same rules, close the current issue, and include both IDs in the closeout note.
 9. `final-linear-mutations` - apply final labels/comments through Linear MCP when write tools are available, or emit `REQUIRED_LINEAR_MUTATIONS` with exact changes.
 
 Do not advance to the next lifecycle state when the current state lacks required evidence. Stop at the current state and record the blocker.
@@ -79,6 +79,6 @@ Use the local JavaScript package manager or runtime available to the agent. Bun 
 - Stop at `refine-plan` if required product facts are missing and cannot be accepted as unknowns.
 - Stop at `implement` if verification cannot prove the ready plan was satisfied.
 - Stop at `review-handoff` if the issue cannot be moved to exactly one final LLM state label.
-- Stop at `closeout` if PR merge, mainline, or CI evidence is missing; keep `llm-review` until closeout is proven.
+- Stop at `closeout` if PR merge, moved old-ID implementation evidence, mainline, or CI evidence is missing; keep `llm-review` until closeout is proven.
 
 If any phase is blocked by missing product facts or unavailable write authority, post or emit the precise `REQUIRED_LINEAR_MUTATIONS` and stop at the blocked handoff state instead of guessing.

@@ -602,6 +602,59 @@ test("closeout verifier rejects unmerged PRs and pending checks", async () => {
   }
 });
 
+test("closeout verifier checks PR commits when closing a moved issue", async () => {
+  const movedPr = await withTempFile("linear-ai-closeout-moved-pr-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/7",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "abc123" },
+    commits: [
+      { messageHeadline: "fix(HCL-7): close moved issue path" }
+    ],
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  const wrongPr = await withTempFile("linear-ai-closeout-moved-pr-wrong-id-", ".json", JSON.stringify({
+    url: "https://github.com/example/linear-ai/pull/8",
+    state: "MERGED",
+    baseRefName: "main",
+    mergeCommit: { oid: "def456" },
+    commits: [
+      { messageHeadline: "fix(ABC-8): close moved issue path" }
+    ],
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  try {
+    const movedResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "ENG-22",
+      "--implemented-issue-id",
+      "HCL-7",
+      "--pr",
+      movedPr.file
+    ]);
+    const wrongResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "ENG-22",
+      "--implemented-issue-id",
+      "HCL-7",
+      "--pr",
+      wrongPr.file
+    ]);
+
+    assert.equal(movedResult.code, 0, movedResult.stderr);
+    assert.match(movedResult.stdout, /ok closeout ENG-22 via implemented issue HCL-7/);
+    assert.notEqual(wrongResult.code, 0);
+    assert.match(wrongResult.stderr, /moved issue PR evidence must mention implemented issue ID HCL-7/);
+  } finally {
+    await rm(movedPr.dir, { recursive: true, force: true });
+    await rm(wrongPr.dir, { recursive: true, force: true });
+  }
+});
+
 test("closeout verifier accepts direct issue commit with successful checks", async () => {
   const commit = await withTempFile("linear-ai-closeout-commit-", ".json", JSON.stringify({
     oid: "abc123",
@@ -616,6 +669,66 @@ test("closeout verifier accepts direct issue commit with successful checks", asy
 
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /ok closeout HCL-7/);
+  } finally {
+    await rm(commit.dir, { recursive: true, force: true });
+  }
+});
+
+test("closeout verifier accepts moved issue when implemented ID has a different team prefix", async () => {
+  const commit = await withTempFile("linear-ai-closeout-moved-issue-", ".json", JSON.stringify({
+    oid: "abc123",
+    subject: "fix(HCL-7): close direct commit path before team move",
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  try {
+    const result = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "ENG-22",
+      "--implemented-issue-id",
+      "HCL-7",
+      "--commit",
+      commit.file
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /ok closeout ENG-22 via implemented issue HCL-7/);
+  } finally {
+    await rm(commit.dir, { recursive: true, force: true });
+  }
+});
+
+test("closeout verifier limits implemented issue override to cross-team moves", async () => {
+  const commit = await withTempFile("linear-ai-closeout-same-prefix-move-", ".json", JSON.stringify({
+    oid: "abc123",
+    subject: "fix(HCL-7): close direct commit path",
+    statusCheckRollup: [
+      { name: "Test and package skills", status: "COMPLETED", conclusion: "SUCCESS" }
+    ]
+  }));
+  try {
+    const sameIssueResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-7",
+      "--implemented-issue-id",
+      "HCL-7",
+      "--commit",
+      commit.file
+    ]);
+    const samePrefixResult = await runBun("verify_closeout.ts", [
+      "--issue-id",
+      "HCL-8",
+      "--implemented-issue-id",
+      "HCL-7",
+      "--commit",
+      commit.file
+    ]);
+
+    assert.notEqual(sameIssueResult.code, 0);
+    assert.match(sameIssueResult.stderr, /must differ from --issue-id/);
+    assert.notEqual(samePrefixResult.code, 0);
+    assert.match(samePrefixResult.stderr, /different Linear team prefix/);
   } finally {
     await rm(commit.dir, { recursive: true, force: true });
   }

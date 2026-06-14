@@ -361,6 +361,8 @@ test("linear close skill defines PR or commit closeout guard", async () => {
     assert.match(source, /remove.*llm-\*/is);
     assert.match(source, /preserve.*sp-\*/is);
     assert.match(source, /REQUIRED_LINEAR_MUTATIONS/);
+    assert.match(source, /different (Linear )?team prefixes/i);
+    assert.match(source, /old implemented ID|implemented issue ID/i);
   }
 });
 

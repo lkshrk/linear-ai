@@ -19,6 +19,7 @@ function stringValue(value: unknown): string | undefined {
 
 type ParsedArgs = {
   issueId: string;
+  implementedIssueId?: string;
   prPath?: string;
   commitPath?: string;
   repoPath?: string;
@@ -37,19 +38,43 @@ function parseArgs(argv: string[]): ParsedArgs {
   }
 
   const issueId = args.get("--issue-id");
+  const implementedIssueId = args.get("--implemented-issue-id");
   const prPath = args.get("--pr");
   const commitPath = args.get("--commit");
   if (!issueId || (!prPath && !commitPath) || (prPath && commitPath)) {
-    throw new CloseoutError("usage: bun scripts/verify_closeout.ts --issue-id ISSUE-ID (--pr pr.json | --commit commit.json) [--repo path] [--base origin/main]");
+    throw new CloseoutError("usage: bun scripts/verify_closeout.ts --issue-id ISSUE-ID [--implemented-issue-id OLD-ISSUE-ID] (--pr pr.json | --commit commit.json) [--repo path] [--base origin/main]");
+  }
+
+  if (implementedIssueId) {
+    requireCrossTeamIssueMove(issueId, implementedIssueId);
   }
 
   return {
     issueId,
+    implementedIssueId,
     prPath,
     commitPath,
     repoPath: args.get("--repo"),
     baseRef: args.get("--base") ?? DEFAULT_BASE
   };
+}
+
+function issuePrefix(issueId: string): string {
+  const match = /^([A-Za-z]+)-\d+$/.exec(issueId);
+  if (!match) throw new CloseoutError(`issue ID must use Linear key format PREFIX-123: ${issueId}`);
+  return match[1].toUpperCase();
+}
+
+function requireCrossTeamIssueMove(currentIssueId: string, implementedIssueId: string): void {
+  if (currentIssueId.toLowerCase() === implementedIssueId.toLowerCase()) {
+    throw new CloseoutError("--implemented-issue-id must differ from --issue-id");
+  }
+
+  const currentPrefix = issuePrefix(currentIssueId);
+  const implementedPrefix = issuePrefix(implementedIssueId);
+  if (currentPrefix === implementedPrefix) {
+    throw new CloseoutError("--implemented-issue-id is only for moved issues with a different Linear team prefix");
+  }
 }
 
 function requireMergedPr(pr: Mapping): string {
@@ -81,6 +106,37 @@ function requireSuccessfulChecks(evidence: Mapping, evidenceName: "PR" | "commit
   if (successCount === 0) throw new CloseoutError(`at least one successful ${evidenceName} status check is required before closeout`);
 }
 
+function issueIdMentionedInText(issueId: string, text: string): boolean {
+  return text.toLowerCase().includes(issueId.toLowerCase());
+}
+
+function commitText(commit: Mapping): string {
+  return [
+    stringValue(commit.subject),
+    stringValue(commit.messageHeadline),
+    stringValue(commit.message),
+    stringValue(commit.title)
+  ].filter((value): value is string => !!value).join("\n");
+}
+
+function requirePrIssueEvidence(pr: Mapping, issueId: string): void {
+  const commits = Array.isArray(pr.commits)
+    ? pr.commits
+    : isMapping(pr.commits) && Array.isArray(pr.commits.nodes)
+      ? pr.commits.nodes
+      : [];
+  if (commits.length === 0) {
+    throw new CloseoutError(`moved issue PR evidence must include commits mentioning implemented issue ID ${issueId}`);
+  }
+
+  for (const commit of commits) {
+    if (!isMapping(commit)) throw new CloseoutError("PR commits must be mappings");
+    if (issueIdMentionedInText(issueId, commitText(commit))) return;
+  }
+
+  throw new CloseoutError(`moved issue PR evidence must mention implemented issue ID ${issueId}`);
+}
+
 async function requireMainlineContainsCommit(repoPath: string | undefined, baseRef: string, commit: string, evidenceName: "commit" | "merge commit"): Promise<void> {
   if (!repoPath) return;
   try {
@@ -106,7 +162,7 @@ function requireIssueCommit(commit: Mapping, issueId: string): string {
     stringValue(commit.message)
   ].filter((value): value is string => !!value).join("\n");
   if (!text) throw new CloseoutError("commit evidence must include subject, messageHeadline, or message");
-  if (!text.toLowerCase().includes(issueId.toLowerCase())) {
+  if (!issueIdMentionedInText(issueId, text)) {
     throw new CloseoutError(`commit evidence must mention issue ID ${issueId}`);
   }
 
@@ -116,18 +172,21 @@ function requireIssueCommit(commit: Mapping, issueId: string): string {
 async function main(argv: string[]): Promise<number> {
   try {
     const args = parseArgs(argv);
+    const evidenceIssueId = args.implementedIssueId ?? args.issueId;
     if (args.prPath) {
       const pr = await loadJson(args.prPath, "PR");
       const mergeCommit = requireMergedPr(pr);
       requireSuccessfulChecks(pr, "PR");
+      if (args.implementedIssueId) requirePrIssueEvidence(pr, evidenceIssueId);
       await requireMainlineContainsCommit(args.repoPath, args.baseRef, mergeCommit, "merge commit");
     } else if (args.commitPath) {
       const commit = await loadJson(args.commitPath, "commit");
-      const oid = requireIssueCommit(commit, args.issueId);
+      const oid = requireIssueCommit(commit, evidenceIssueId);
       requireSuccessfulChecks(commit, "commit");
       await requireMainlineContainsCommit(args.repoPath, args.baseRef, oid, "commit");
     }
-    console.log(`ok closeout ${args.issueId}`);
+    const movedSuffix = args.implementedIssueId ? ` via implemented issue ${args.implementedIssueId}` : "";
+    console.log(`ok closeout ${args.issueId}${movedSuffix}`);
     return 0;
   } catch (error) {
     console.error((error as Error).message);

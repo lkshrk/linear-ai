@@ -174,9 +174,10 @@ Verify that a merged PR or direct issue-ID commit has enough evidence to close t
 gh pr view <PR> --json url,state,isDraft,baseRefName,mergeCommit,statusCheckRollup,commits > pr.json
 bun scripts/verify_closeout.ts --issue-id CIV-999 --pr pr.json --repo . --base origin/main
 bun scripts/verify_closeout.ts --issue-id CIV-999 --commit commit.json --repo . --base origin/main
+bun scripts/verify_closeout.ts --issue-id ENG-22 --implemented-issue-id CIV-999 --commit commit.json --repo . --base origin/main
 ```
 
-The gate requires either a merged PR with a merge commit or direct commit evidence mentioning the issue ID. Both paths require at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit or direct issue-ID commit.
+The gate requires either a merged PR with a merge commit or direct commit evidence mentioning the issue ID. When a Linear issue has been moved to another team and the current issue key has a different prefix from the implemented issue key, pass `--implemented-issue-id` so commit evidence is checked against the old ID while closeout targets the current ID. For PR evidence with this override, the PR JSON must include commits and at least one commit must mention the old implemented ID. Both paths require at least one successful completed status check, no failed or pending checks, and, when `--repo` is provided, proof that the selected mainline ref contains the merge commit or direct issue-ID commit.
 
 ## Linear Metadata Helper
 
