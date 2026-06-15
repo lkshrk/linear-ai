@@ -1,6 +1,6 @@
 # Linear AI
 
-Linear AI is a portable workflow kit for using Linear as the source of truth for AI-assisted feature delivery.
+Linear AI is a development workflow kit for using Linear as the source of truth for AI-assisted feature delivery.
 
 It gives agents a repeatable path for one issue:
 
