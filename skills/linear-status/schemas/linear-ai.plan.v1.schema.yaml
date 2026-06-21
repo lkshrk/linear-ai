@@ -1,0 +1,142 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: linear-ai.plan.v1
+title: Linear AI Plan Comment
+type: object
+additionalProperties: false
+required:
+  - schema
+  - issue_id
+  - revision
+  - plan_status
+  - source_issue_url
+  - target_repositories
+  - labels_to_apply
+  - labels_to_remove
+  - split_recommendation
+  - accepted_unknowns
+  - open_questions
+  - implementation_checklist
+  - acceptance_criteria
+  - verification
+  - do_not_assume
+properties:
+  schema:
+    const: linear-ai.plan.v1
+  issue_id:
+    type: string
+    minLength: 1
+  revision:
+    type: integer
+    minimum: 1
+  plan_status:
+    enum:
+      - draft
+      - ready
+      - blocked
+  source_issue_url:
+    type: string
+    minLength: 1
+  parent_issue_id:
+    type:
+      - string
+      - "null"
+  target_repositories:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      minLength: 1
+  labels_to_apply:
+    type: array
+    items:
+      type: string
+  labels_to_remove:
+    type: array
+    items:
+      type: string
+  split_recommendation:
+    type: object
+    additionalProperties: false
+    required:
+      - recommended
+      - reason
+    properties:
+      recommended:
+        type: boolean
+      reason:
+        type:
+          - string
+          - "null"
+  accepted_unknowns:
+    type: array
+    items:
+      type: string
+  open_questions:
+    type: array
+    items:
+      type: string
+  implementation_checklist:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - repository
+        - task
+        - status
+      properties:
+        id:
+          type: string
+          minLength: 1
+        repository:
+          type: string
+          minLength: 1
+        task:
+          type: string
+          minLength: 1
+        status:
+          enum:
+            - todo
+            - in_progress
+            - done
+            - blocked
+  acceptance_criteria:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - criterion
+      properties:
+        id:
+          type: string
+          minLength: 1
+        criterion:
+          type: string
+          minLength: 1
+  verification:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - command_or_check
+      properties:
+        id:
+          type: string
+          minLength: 1
+        command_or_check:
+          type: string
+          minLength: 1
+  do_not_assume:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      minLength: 1

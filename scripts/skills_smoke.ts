@@ -30,7 +30,10 @@ async function smokeAgent(agent: "codex" | "claude-code", expectedPath: string):
   const dir = await mkdtemp(path.join(os.tmpdir(), `linear-ai-skills-${agent}-`));
   try {
     await run("npx", ["-y", "skills", "add", ROOT, "--skill", "linear-status", "--agent", agent, "--copy", "-y"], dir);
-    await assertContains(path.join(dir, expectedPath, "linear-status", "SKILL.md"), "name: linear-status");
+    const skillRoot = path.join(dir, expectedPath, "linear-status");
+    await assertContains(path.join(skillRoot, "SKILL.md"), "name: linear-status");
+    await assertContains(path.join(skillRoot, "docs", "workflow.md"), "Claim Lock Rule");
+    await assertContains(path.join(skillRoot, "scripts", "validate_marked_comments.ts"), "SCHEMA_FILES");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -5,6 +5,8 @@ pre-commit:
       run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX bun test
     - name: comment schemas
       run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX bun run validate
+    - name: skill reference bundles
+      run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX make skills-sync-check
 
 pre-push:
   parallel: true

@@ -1,4 +1,4 @@
-.PHONY: test validate render-examples metadata-summary marketplace-generate marketplace-publish marketplace-smoke release-check release-create verify-handoff self-review install-smoke skills-smoke
+.PHONY: test validate render-examples metadata-summary marketplace-generate marketplace-publish marketplace-smoke release-check release-create verify-handoff self-review install-smoke skills-smoke skills-sync skills-sync-check
 
 test:
 	bun test
@@ -39,3 +39,9 @@ install-smoke:
 
 skills-smoke:
 	bun scripts/skills_smoke.ts
+
+skills-sync:
+	bun scripts/sync_skill_references.ts
+
+skills-sync-check:
+	bun scripts/sync_skill_references.ts --check

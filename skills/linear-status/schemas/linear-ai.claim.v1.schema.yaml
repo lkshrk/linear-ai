@@ -1,0 +1,24 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: linear-ai.claim.v1
+title: Linear AI Claim Lock
+# Contract: at most one claim block per issue description. Present only while the issue holds the `in-use` lock; removed when released.
+type: object
+additionalProperties: false
+required:
+  - schema
+  - issue_id
+  - claimed_by
+  - claimed_at
+properties:
+  schema:
+    const: linear-ai.claim.v1
+  issue_id:
+    type: string
+    minLength: 1
+  claimed_by:
+    type: string
+    minLength: 1
+  claimed_at:
+    # ISO 8601 timestamp the claim was taken; used to detect stale locks.
+    type: string
+    minLength: 1

@@ -142,6 +142,8 @@ make validate
 make verify-handoff
 make install-smoke
 make skills-smoke
+make skills-sync          # mirror referenced files into each skill dir after editing docs/agents/templates/scripts/schemas
+make skills-sync-check    # fail if any skill bundle is stale (runs in pre-commit)
 make marketplace-generate
 make marketplace-smoke
 make release-check
@@ -150,7 +152,7 @@ bun scripts/create_release.ts patch --dry-run
 
 ## Repository Layout
 
-- `skills/` - portable agent skills.
+- `skills/` - portable agent skills. Each skill bundles copies of the root files its `SKILL.md` references (kept in sync by `make skills-sync`) so `npx skills add` installs a self-contained skill.
 - `.codex-plugin/plugin.json` - Codex plugin manifest.
 - `.claude-plugin/plugin.json` - Claude Code plugin compatibility manifest.
 - `agents/` - runnable agent role prompts.

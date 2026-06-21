@@ -1,0 +1,215 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: linear-ai.status.v1
+title: Linear AI Status Comment
+type: object
+additionalProperties: false
+required:
+  - schema
+  - issue_id
+  - plan_revision
+  - status_revision
+  - implementation_status
+  - draft_prs
+  - completed_items
+  - blocked_items
+  - skipped_items
+  - placeholders
+  - questions
+  - verification
+  - recommended_labels_to_apply
+  - recommended_labels_to_remove
+  - recommended_status
+  - commits
+  - final_destination
+  - workspace_cleanup
+properties:
+  schema:
+    const: linear-ai.status.v1
+  issue_id:
+    type: string
+    minLength: 1
+  plan_revision:
+    type: integer
+    minimum: 1
+  status_revision:
+    type: integer
+    minimum: 1
+  implementation_status:
+    enum:
+      - active
+      - blocked
+      - review_ready
+      - abandoned
+  draft_prs:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - repository
+        - url
+      properties:
+        repository:
+          type: string
+          minLength: 1
+        url:
+          type: string
+          minLength: 1
+  completed_items:
+    type: array
+    items:
+      type: string
+  blocked_items:
+    type: array
+    items:
+      type: string
+  skipped_items:
+    type: array
+    items:
+      type: string
+  placeholders:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - location
+        - reason
+      properties:
+        id:
+          type: string
+          minLength: 1
+        location:
+          type: string
+          minLength: 1
+        reason:
+          type: string
+          minLength: 1
+  questions:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - blocks
+        - question
+      properties:
+        id:
+          type: string
+          minLength: 1
+        blocks:
+          type: array
+          items:
+            type: string
+        question:
+          type: string
+          minLength: 1
+  verification:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - check
+        - result
+        - reason
+      properties:
+        check:
+          type: string
+          minLength: 1
+        result:
+          enum:
+            - passed
+            - failed
+            - not_run
+        reason:
+          type: string
+          minLength: 1
+  review_justifications:
+    # Findings from the Implementation Review Loop that were accepted instead of fixed, with rationale.
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - finding
+        - rationale
+      properties:
+        finding:
+          type: string
+          minLength: 1
+        location:
+          type: string
+        rationale:
+          type: string
+          minLength: 1
+  recommended_labels_to_apply:
+    type: array
+    items:
+      type: string
+  recommended_labels_to_remove:
+    type: array
+    items:
+      type: string
+  recommended_status:
+    type:
+      - string
+      - "null"
+  commits:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - subject
+      properties:
+        sha:
+          type: string
+        subject:
+          type: string
+          minLength: 1
+  final_destination:
+    enum:
+      - main
+      - master
+      - feature_branch
+      - feature_branch_pr
+      - undecided
+  workspace_cleanup:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - kept
+    properties:
+      status:
+        enum:
+          - cleaned
+          - intentionally_kept
+          - pending
+      kept:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - path
+            - branch
+            - owner
+            - reason
+          properties:
+            path:
+              type: string
+              minLength: 1
+            branch:
+              type: string
+              minLength: 1
+            owner:
+              type: string
+              minLength: 1
+            reason:
+              type: string
+              minLength: 1

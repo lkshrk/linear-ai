@@ -20,6 +20,8 @@
     "self-review": "bun scripts/self_review.ts",
     "install:smoke": "bun scripts/install_smoke.ts",
     "skills:smoke": "bun scripts/skills_smoke.ts",
+    "skills:sync": "bun scripts/sync_skill_references.ts",
+    "skills:sync:check": "bun scripts/sync_skill_references.ts --check",
     "hooks:install": "lefthook install",
     "hooks:run": "lefthook run pre-commit --all-files && lefthook run pre-push --all-files",
     "validate:ledger": "bun scripts/validate_review_ledger.ts examples/review-ledger.yaml",
@@ -34,7 +36,9 @@
     "verify:handoff:node": "tsx scripts/verify_handoff.ts",
     "self-review:node": "tsx scripts/self_review.ts",
     "install:smoke:node": "tsx scripts/install_smoke.ts",
-    "skills:smoke:node": "tsx scripts/skills_smoke.ts"
+    "skills:smoke:node": "tsx scripts/skills_smoke.ts",
+    "skills:sync:node": "tsx scripts/sync_skill_references.ts",
+    "skills:sync:check:node": "tsx scripts/sync_skill_references.ts --check"
   },
   "dependencies": {
     "ajv": "^8.20.0",
