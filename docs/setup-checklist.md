@@ -25,6 +25,8 @@ Use this checklist to finish the Markdown-first Linear AI workflow setup.
   - `llm-blocked`
   - `llm-review`
   - `llm-split`
+- [ ] Create claim lock label (outside `llm-*`):
+  - `in-use`
 - [x] Create or confirm product labels:
   - `bug`
   - `feature`

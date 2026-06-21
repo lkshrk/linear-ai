@@ -128,6 +128,24 @@ properties:
         reason:
           type: string
           minLength: 1
+  review_justifications:
+    # Findings from the Implementation Review Loop that were accepted instead of fixed, with rationale.
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - finding
+        - rationale
+      properties:
+        finding:
+          type: string
+          minLength: 1
+        location:
+          type: string
+        rationale:
+          type: string
+          minLength: 1
   recommended_labels_to_apply:
     type: array
     items:

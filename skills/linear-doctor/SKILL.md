@@ -38,6 +38,10 @@ Report missing `llm-*` workflow labels:
 - `llm-review`
 - `llm-split`
 
+Report the missing claim lock label (outside the `llm-*` state machine):
+
+- `in-use`
+
 Report missing `sp-*` Superpowers phase labels:
 
 - `sp-clarify`

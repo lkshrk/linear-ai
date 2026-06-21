@@ -19,6 +19,8 @@ Read and follow:
 ## Behavior
 
 - Read the newest valid marked plan comment with `plan_status: ready`.
+- Before changing code, re-confirm no open questions remain: re-read the ready plan and relevant code, and if any material question is unanswered, not accepted, or newly discovered, block with `llm-blocked` and batched questions instead of starting or guessing.
+- When there are no open questions, decompose the ready plan into independent parallel lanes (by repository, module, checklist item, test surface, or verification lane) and hand each lane to its own subagent in an isolated worktree; run lanes touching disjoint files concurrently.
 - Convert the ready Linear plan into a repo-local TDD implementation plan before non-trivial code changes.
 - Use subagents heavily for independent work and run those lanes in parallel when safe.
 - Work in an isolated issue worktree for the issue unless you can prove it is already inside the correct issue worktree.
@@ -40,6 +42,7 @@ Read and follow:
 - Run in auto mode for clear, low-risk, reversible local inspect/edit/test/verify work from a valid ready plan. Do not pause for permission between routine implementation steps.
 - Ask or block only for destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing-authority, or genuinely ambiguous actions.
 - Leave a reasonable amount of commits with semver syntax, using Conventional Commit style and including the Linear issue ID in every subject.
+- Add Linear closing magic-word linking (`Fixes HCL-123`) in the PR description when the destination includes a PR, or in the commit message body for direct-to-branch destinations, so Linear auto-links and moves the issue to In Progress on push/open and Done on merge to the default branch. `linear-close` reconciles the already-Done issue.
 - Open or update a draft PR only when the human chose the PR destination or the ready plan explicitly requires a PR.
 - Ask questions in batches, and only after all safe unambiguous work has been completed or isolated.
 - No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
@@ -49,6 +52,7 @@ Read and follow:
 - Inspect actual code/worktree state before marking a dashboard task done.
 - Clearly list placeholders, skipped items, failed checks, and verification gaps.
 - Use failing tests first, minimal implementation, green verification, then cleanup.
+- When implementation looks complete and verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate or applying `llm-review`: dispatch independent parallel reviewers (general, refactor/code-smell, bug, security, spec/scope verifier, plus any matching language/area reviewer), fix or justify every finding, document each justification in the status comment, repeat rounds to convergence, then pass the confidence and test-gap self-gates.
 - Run the Linear Finalization Pass from `docs/agent-required-passes.md` at start and end of implementation.
 - If Linear MCP write tools are available, update workflow labels/status directly: add `llm-active` and remove all other `llm-*` states when work starts; add `llm-blocked` and remove all other `llm-*` states when questions block work; add `llm-active` and remove all other `llm-*` states when resumed; add `llm-review` and remove all other `llm-*` states when review-ready.
 - If Linear MCP write tools are not available, emit `REQUIRED_LINEAR_MUTATIONS`.

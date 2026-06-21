@@ -18,6 +18,19 @@ Use the repository root as the workflow source. Read and follow:
 
 Start from the newest valid marked plan comment. Do not invent missing product behavior. If blocked, post batched questions in a marked status comment and apply or emit the correct Linear mutations.
 
+## Claim Lock
+
+Follow the Claim Lock Rule in `docs/workflow.md`. On start, re-read the issue; if it already carries `in-use` and this run is not resuming its own claim, stop and report the issue as claimed without changing it. Otherwise add the `in-use` label when claiming the issue (alongside applying `llm-active`). Remove `in-use` when this run stops working the issue: on review-ready handoff, blocked, abandoned, or failure. `in-use` is outside the `llm-*` namespace, so bulk `llm-*` strips do not remove it; release it explicitly.
+
+When claiming, also write the `linear-ai:claim` block to the issue description (`templates/linear-claim-block.md`) with `claimed_by: linear-implement` and an ISO 8601 `claimed_at`. When releasing, remove the claim block so the description stays consistent with the label.
+
+## Pre-Implementation Gate
+
+Before changing any code, run this gate once the issue is claimed:
+
+1. Re-confirm no open questions remain. Re-read the newest ready plan, its `open_questions`, `accepted_unknowns`, and `do_not_assume`, plus the relevant code. If any material question is unanswered and not explicitly accepted, or you discover new ambiguity while reading the code, stop and block with `llm-blocked` and batched questions instead of guessing or starting. Do not begin implementation with an open material question.
+2. When there are no open questions, decompose the ready plan into independent parallel lanes - split by repository, module, checklist item, test surface, or verification lane so that lanes touching disjoint files can run at the same time. Hand each lane to its own subagent in an isolated worktree per the Parallel Execution rules, and reserve sequential work only for lanes that must share mutable files.
+
 ## Auto Mode
 
 Run implementation in auto mode once a valid ready plan exists. Continue through safe, reversible local inspect/edit/test/verify steps without asking for permission again. This includes reading repo context, creating the repo-local TDD plan, editing files named or implied by the ready plan, updating tests, running focused validation, updating the Linear dashboard/status evidence, and iterating on failed checks.
@@ -48,6 +61,10 @@ Merge back subagent work only after reviewing the diff, resolving conflicts, upd
 
 Clean up temporary lane worktrees after merge-back and verification. Keep temporary lane worktrees distinct from the persistent issue worktree. If any temporary lane worktree is intentionally kept, report its path, branch, owner, and reason in the status comment.
 
+## Implementation Review Loop
+
+When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the destination question and before applying `llm-review`. Dispatch independent parallel review subagents — always general review, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides — then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence (bounded; block to the human if it will not converge). Then pass the confidence and test-gap self-gates. Implementation is not done until the loop converges and both self-gates pass.
+
 ## Commit and Destination Policy
 
 Do not choose the final code destination. After implementation and verification are complete, but before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting a review-ready handoff, ask the human which destination to use:
@@ -68,6 +85,15 @@ fix(HCL-123): repair status extraction
 test(HCL-123): cover dashboard validation
 ```
 
+### Linear Magic Word Linking
+
+Link the work to the Linear issue with a closing magic word plus the issue ID so Linear auto-links and advances status (In Progress on push/open, Done when the change reaches the default branch):
+
+- Feature-branch-with-PR destination: put a closing magic word and the issue ID in the PR description, for example `Fixes HCL-123` (multiple issues: `Fixes HCL-123, HCL-124`). Magic words only work in the PR title or description, not in a PR comment.
+- Direct-to-branch destinations (`main`/`master` or feature branch without PR): add a `Fixes HCL-123` line to the commit message body in addition to the Conventional Commit subject above.
+- Closing magic words: `close/closes/closed/closing`, `fix/fixes/fixed/fixing`, `resolve/resolves/resolved/resolving`, `complete/completes/completed/completing`, `implements/implemented/implementing`. Prefer `Fixes`. The Conventional Commit subject keeps the `(HCL-123)` scope for readability and commit-evidence closeout; the magic word drives the Linear automation.
+- Because a closing magic word moves the issue to Done on merge, `linear-close` runs as verify-and-finalize: it tolerates an already-Done issue and still verifies evidence, updates the dashboard, posts the closeout comment, and strips `llm-*` and `in-use`.
+
 Report the final commit list and chosen destination in the status comment.
 
 Before review-ready handoff, confirm the final destination was explicitly chosen, temporary lane worktrees were cleaned up, and the issue worktree cleanup state is explicitly listed as cleaned or intentionally kept.
@@ -79,7 +105,7 @@ Use these Linear MCP tools when available:
 - `get_issue` - read the current issue, labels, status, and branch metadata.
 - `list_comments` - find the newest marked plan and status comments before acting.
 - `save_comment` - post marked implementation status, questions, blockers, and review-ready evidence.
-- `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, update issue description dashboard, and update status when writes are available.
+- `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, add the `in-use` claim on start and remove it on stop, update issue description dashboard, and update status when writes are available.
 
 Validate status comments and the issue description dashboard with:
 

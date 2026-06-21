@@ -16,6 +16,12 @@ Use the repository root as the workflow source. Read and follow:
 
 Ask one question at a time. Run the required local review/grill pass before marking a plan ready.
 
+## Claim Lock
+
+Follow the Claim Lock Rule in `docs/workflow.md`. On start, re-read the issue; if it already carries `in-use` and this run is not resuming its own claim, stop and report the issue as claimed without changing it. Otherwise add the `in-use` label when claiming the issue. Remove `in-use` when this run stops working the issue: on ready handoff, blocked, or abandoned. `in-use` is outside the `llm-*` namespace, so release it explicitly.
+
+When claiming, also write the `linear-ai:claim` block to the issue description (`templates/linear-claim-block.md`) with `claimed_by: linear-refine` and an ISO 8601 `claimed_at`, preserving other description content. When releasing, remove the claim block.
+
 ## Questionnaire Start
 
 Before writing a ready plan, decide from source evidence whether a questionnaire is needed. Source evidence includes the issue, comments, linked docs, and codebase inspection. If no material ambiguity remains, record that no questionnaire was needed and continue to the ready plan.
@@ -41,7 +47,7 @@ Use these Linear MCP tools when available:
 - `get_issue` - read current issue fields, labels, status, and branch metadata.
 - `list_comments` - read existing marked plan/status comments before creating a new revision.
 - `save_comment` - post the marked plan comment or reply to the relevant thread.
-- `save_issue` - apply `llm-ready`, remove other `llm-*` labels, and update status when writes are available.
+- `save_issue` - apply `llm-ready`, remove other `llm-*` labels, add the `in-use` claim on start and remove it on stop, and update status when writes are available.
 
 Validate marked plan comments with:
 

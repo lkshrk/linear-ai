@@ -10,8 +10,11 @@ const STATUS_START = /<!--\s*linear-ai:status v1\b.*?-->/s;
 const STATUS_END = /<!--\s*\/linear-ai:status\s*-->/s;
 const DASHBOARD_START = /<!--\s*linear-ai:dashboard v1\b.*?-->/s;
 const DASHBOARD_END = /<!--\s*\/linear-ai:dashboard\s*-->/s;
+const CLAIM_START = /<!--\s*linear-ai:claim v1\b.*?-->/s;
+const CLAIM_END = /<!--\s*\/linear-ai:claim\s*-->/s;
 const PLAN_BLOCK = /<!--\s*linear-ai:plan v1\b.*?-->.*?<!--\s*\/linear-ai:plan\s*-->/gs;
 const DASHBOARD_BLOCK = /<!--\s*linear-ai:dashboard v1\b.*?-->.*?<!--\s*\/linear-ai:dashboard\s*-->/gs;
+const CLAIM_BLOCK = /<!--\s*linear-ai:claim v1\b.*?-->.*?<!--\s*\/linear-ai:claim\s*-->/gs;
 const YAML_BLOCK = /```yaml\n(.*?)```/s;
 const LLM_STATE_LABELS = ["llm-refine", "llm-ready", "llm-active", "llm-blocked", "llm-review", "llm-split"];
 const DASHBOARD_TASK_STATES = ["todo", "active", "blocked", "done", "skipped", "deferred"];
@@ -35,12 +38,13 @@ type ValidatorOptions = {
 type ValidateFileOptions = ValidatorOptions & {
   allowDashboardComment?: boolean;
 };
-type SchemaKind = "plan" | "status" | "dashboard";
+type SchemaKind = "plan" | "status" | "dashboard" | "claim";
 
 const SCHEMA_FILES: Record<SchemaKind, string> = {
   plan: "linear-ai.plan.v1.schema.yaml",
   status: "linear-ai.status.v1.schema.yaml",
-  dashboard: "linear-ai.dashboard.v1.schema.yaml"
+  dashboard: "linear-ai.dashboard.v1.schema.yaml",
+  claim: "linear-ai.claim.v1.schema.yaml"
 };
 
 const ajv = new Ajv2020({ allErrors: true });
@@ -328,6 +332,11 @@ function validateDashboard(data: Mapping, latestReadyPlan?: Mapping): void {
   if (typeof data.updated_by !== "string" || data.updated_by.length === 0) throw new ValidationError("updated_by is required");
 }
 
+function validateClaim(data: Mapping): void {
+  requireFields(data, ["schema", "issue_id", "claimed_by", "claimed_at"]);
+  if (data.schema !== "linear-ai.claim.v1") throw new ValidationError("schema must be linear-ai.claim.v1");
+}
+
 async function latestReadyPlan(content: string, options: ValidatorOptions = {}): Promise<Mapping | undefined> {
   let latest: Mapping | undefined;
   for (const match of content.matchAll(PLAN_BLOCK)) {
@@ -339,8 +348,21 @@ async function latestReadyPlan(content: string, options: ValidatorOptions = {}):
   return latest;
 }
 
+async function validateClaimBlock(content: string, path: string): Promise<void> {
+  const claimMatches = [...content.matchAll(CLAIM_BLOCK)];
+  if (claimMatches.length > 1) throw new ValidationError("multiple claim blocks found in issue description");
+  if (claimMatches.length === 0) return;
+
+  const claim = loadYaml(extractYamlFromMarkedBlock(claimMatches[0][0], "claim"), "claim");
+  await validateSchema(claim, "claim");
+  validateClaim(claim);
+  void path;
+}
+
 async function validateDescription(path: string, options: ValidatorOptions = {}): Promise<{ message?: string; hasDashboard: boolean }> {
   const content = await readFile(path, "utf8");
+  await validateClaimBlock(content, path);
+
   const dashboardMatches = [...content.matchAll(DASHBOARD_BLOCK)];
   if (dashboardMatches.length > 1) throw new ValidationError("multiple dashboard blocks found in issue description");
   if (dashboardMatches.length === 0) return { hasDashboard: false };
@@ -366,6 +388,14 @@ async function validateFile(path: string, options: ValidateFileOptions = {}): Pr
     await validateSchema(data, "dashboard");
     validateDashboard(data, await latestReadyPlan(content, options));
     return `ok ${path} dashboard`;
+  }
+
+  if (CLAIM_START.test(content)) {
+    const yaml = extractBlock(content, CLAIM_START, CLAIM_END, "claim");
+    const data = loadYaml(yaml, "claim");
+    await validateSchema(data, "claim");
+    validateClaim(data);
+    return `ok ${path} claim`;
   }
 
   if (PLAN_START.test(content)) {

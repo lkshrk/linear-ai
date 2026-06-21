@@ -34,9 +34,24 @@ Determine current phase from actual issue state, not memory:
 - `implement` - issue has `llm-ready` and newest valid plan has `plan_status: ready`; run `linear-implement`.
 - `blocked` - issue has `llm-blocked` or newest status comment has unresolved questions; run `linear-refine` or ask the listed blocker question.
 - `review-handoff` - issue has `llm-review` or newest status comment is `review_ready`; prepare human review.
-- `repair-state` - labels, description dashboard, and comments disagree, multiple `llm-*` states are present, newest marked comment is invalid, or required dashboard/status evidence is missing.
+- `repair-state` - labels, description dashboard, and comments disagree, multiple `llm-*` states are present, newest marked comment is invalid, required dashboard/status evidence is missing, or the `in-use` claim lock is stale or contradictory (see Claim Lock Check).
 
 When labels, the description dashboard, and comments disagree, prefer validated marked evidence as evidence, then recommend the smallest description, label, or status repair.
+
+## Claim Lock Check
+
+Inspect the `in-use` claim lock per the Claim Lock Rule in `docs/workflow.md` and report a `claim-stale` finding under `repair-state` when the lock looks orphaned.
+
+Tier 1 — structural contradictions (label-only, reliable). Flag `in-use` when it cannot legitimately coexist with the current state:
+
+- the issue is Done/closed but still carries `in-use` (a missed release),
+- `in-use` is present with no active work state, or with a state that releases on stop (`llm-ready`, `llm-blocked`).
+
+`in-use` alongside `llm-refine`, `llm-active`, or `llm-review` is a legitimate held lock; do not flag it on labels alone.
+
+Tier 2 — staleness (needs claim metadata). When the `linear-ai:claim` block is present in the description, treat the lock as stale if `now - claimed_at` exceeds the stale threshold (default 60 minutes; let the user override). Report `claimed_by` and the age. If `in-use` is present but no claim block exists, flag the mismatch (a label and claim block must be present or absent together) and fall back to the Tier 1 checks.
+
+For any stale or contradictory lock, recommend the smallest repair: remove the `in-use` label and the `linear-ai:claim` block. Do not apply the repair unless explicitly acting as a finalizer with write tools available; otherwise emit it as `REQUIRED_LINEAR_MUTATIONS`.
 
 ## Step Completion Handoff
 

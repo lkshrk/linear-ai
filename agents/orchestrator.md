@@ -39,6 +39,7 @@ The orchestrator owns:
 - adding/removing `llm-active`
 - adding/removing `llm-blocked`
 - adding `llm-review`
+- adding/removing the `in-use` claim label per the Claim Lock Rule in `docs/workflow.md`
 - moving normal Linear status when safe
 
 Issue-intake, questioner, and implementer emit structured intent. The orchestrator applies state.

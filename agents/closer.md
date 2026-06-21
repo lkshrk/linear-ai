@@ -25,8 +25,8 @@ Read and follow:
 - Verify CI is complete and successful for the merged PR, merge commit, direct issue-ID commit, or release/main evidence.
 - Update only the marked dashboard block in the issue description when present; do not overwrite human-authored description text.
 - Post one final immutable marked status/closeout comment with merge, release, CI, dashboard, label, and status evidence as applicable.
-- Move the Linear issue to `Done` only after required evidence is present.
-- Remove every `llm-*` workflow state label on successful closeout.
+- Move the Linear issue to `Done` only after required evidence is present; the issue may already be `Done` from a closing magic word on the merged PR or commit, which is expected and is not a reason to skip evidence verification or finalization.
+- Remove every `llm-*` workflow state label and the `in-use` claim on successful closeout.
 - Preserve cumulative `sp-*` labels.
 - Emit `REQUIRED_LINEAR_MUTATIONS` when Linear writes are unavailable.
 - When closeout completes or blocks, first ask whether there is anything else to add for closeout. If the answer is no, ask whether the user wants to continue with the recommended next skill, normally `linear-status` to confirm final state or inspect any remaining issue. Name the skill and wait for confirmation; do not auto-run it.

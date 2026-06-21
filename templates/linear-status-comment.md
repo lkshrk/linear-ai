@@ -32,6 +32,10 @@ verification:
   - check: npm test
     result: not_run
     reason: Blocked before relevant tests could run.
+review_justifications:
+  - finding: Helper duplicated in two modules.
+    location: path/to/file.ts
+    rationale: Extracting now would couple unrelated modules; deferred to a tracked follow-up.
 recommended_labels_to_apply:
   - llm-blocked
 recommended_labels_to_remove:
@@ -73,6 +77,10 @@ Short implementation status.
 
 - `npm test` - not run; reason.
 
+## Review Justifications
+
+- Helper duplicated in two modules - deferred; extracting now would couple unrelated modules.
+
 ## PRs
 
 - `backend` - draft PR link, when `final_destination` is `feature_branch_pr`.
@@ -110,3 +118,4 @@ Add `llm-blocked` and keep PR draft.
 - Placeholders must be explicit.
 - Verification must say what ran, what failed, or why it was not run.
 - `review_ready` requires no unresolved blocking questions.
+- `review_justifications` documents every Implementation Review Loop finding accepted instead of fixed, with its rationale.

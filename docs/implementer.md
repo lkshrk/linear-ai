@@ -28,6 +28,13 @@ Optional:
 - existing draft PR or branch
 - linked docs or ADRs
 
+## Pre-Implementation Gate
+
+Before changing any code, once the issue is claimed:
+
+1. Re-confirm no open questions remain. Re-read the newest ready plan, its `open_questions`, `accepted_unknowns`, and `do_not_assume`, plus the relevant code. If any material question is unanswered and not explicitly accepted, or new ambiguity surfaces while reading the code, block with `llm-blocked` and batched questions instead of starting or guessing.
+2. With no open questions, decompose the ready plan into independent parallel lanes (by repository, module, checklist item, test surface, or verification lane) so lanes touching disjoint files run concurrently. Hand each lane to its own subagent in an isolated worktree; reserve sequential work only for lanes that must share mutable files.
+
 ## Operating Rules
 
 - Never guess product behavior, API shape, UX, data migration, security behavior, or acceptance criteria.
@@ -115,9 +122,13 @@ Do not dispatch parallel code-changing subagents into the same working tree. If 
 
 Clean up temporary lane worktrees after their lane is merged and verified. If a temporary lane worktree is intentionally kept for follow-up, report its path, branch, owner, and reason in the status comment.
 
+## Implementation Review Loop
+
+When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate and before applying `llm-review`. Dispatch independent parallel review subagents (general, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides), then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence. Bound the loop and block to the human if it will not converge. After convergence, pass the confidence and test-gap self-gates. Implementation is complete only when the loop converges and both self-gates pass.
+
 ## Final Destination Gate
 
-Implementation happens in the issue worktree first. After implementation and verification are complete, ask the human what to do with the finished code before performing any destination action.
+Implementation happens in the issue worktree first. After implementation, verification, and the Implementation Review Loop are complete, ask the human what to do with the finished code before performing any destination action.
 
 The allowed choices are:
 
@@ -174,6 +185,8 @@ docs(HCL-123): document repo-local usage
 ```
 
 Allowed commit types include `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`, and `ci`. Use `!` for breaking changes, for example `feat(HCL-123)!: change dashboard schema`.
+
+Add Linear magic-word linking so the issue auto-links and advances status (In Progress on push/open, Done when the change reaches the default branch). Use a closing magic word plus the issue ID: in the PR description when the destination includes a PR (for example `Fixes HCL-123`, or `Fixes HCL-123, HCL-124` for multiple issues; magic words do not work in PR comments), or in the commit message body for direct-to-branch destinations. Closing magic words: `close/closes/closed/closing`, `fix/fixes/fixed/fixing`, `resolve/resolves/resolved/resolving`, `complete/completes/completed/completing`, `implements/implemented/implementing`; prefer `Fixes`. The Conventional Commit subject keeps the `(HCL-123)` scope; the magic word drives the automation. Because this moves the issue to Done on merge, `linear-close` reconciles an already-Done issue rather than treating it as an error.
 
 Each commit should compile or clearly state why it is an intermediate checkpoint. Before final handoff, report the commit list and whether the work is on `main`/`master`, a feature branch without PR, or a feature branch with PR.
 

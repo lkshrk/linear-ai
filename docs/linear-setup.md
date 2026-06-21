@@ -21,6 +21,10 @@ Create these AI workflow labels:
 - `llm-review`
 - `llm-split`
 
+Create this claim lock label (outside the `llm-*` state machine):
+
+- `in-use`
+
 Create these Superpowers phase labels:
 
 - `sp-clarify`

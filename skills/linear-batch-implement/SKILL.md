@@ -28,15 +28,19 @@ Use Linear MCP:
 - Optional filters: team, project, assignee, label, and explicit issue IDs when supplied by the user.
 - `get_issue` and `list_comments` to verify each candidate has a newest valid ready plan with `plan_status: ready`.
 
+Exclude issues already carrying the `in-use` claim label; another agent is working them.
+
 Support explicit dry-run or list-only mode. In dry-run/list-only mode, show the queue and stop without dispatching subagents or mutating Linear.
 
 Sort the queue by Linear priority first, then oldest-updated issue first. Priority order is Urgent, High, Medium, Low, then No priority/none; within the same priority, sort by `updatedAt` ascending. Show a scoped queue summary with issue ID, title, status, project, issue worktree or Git ref, ready plan revision, updated time, and why the issue is eligible.
 
 Ask for confirmation before dispatch. Ask for one global maximum parallelism value after queue discovery and before dispatch. Cap parallelism at 6. Do not choose unbounded or default implementation parallelism.
 
+When switching focus to a different issue, give a short content summary first per the Ticket Reference Rule in `docs/workflow.md`: name the issue ID and a one-line description of what it is about.
+
 ## Dispatch Rules
 
-Immediately before dispatching each issue, re-read issue state with `get_issue` and `list_comments`. Skip the issue if it no longer has `llm-ready` or no longer has a newest valid ready plan, and record observed Linear state drift in the summary.
+Immediately before dispatching each issue, re-read issue state with `get_issue` and `list_comments`. Skip the issue if it no longer has `llm-ready`, no longer has a newest valid ready plan, or now carries the `in-use` claim label (claimed by another agent), and record observed Linear state drift in the summary.
 
 Require per-issue isolation. Each `linear-implement` subagent must work in its isolated issue worktree using the issue Git ref or PR as plumbing, and must not share a mutable worktree with another code-changing issue.
 

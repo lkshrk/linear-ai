@@ -18,6 +18,14 @@ Read and follow:
 
 Do not implement code, merge PRs, or alter review policy. This skill only finalizes work after merged PR evidence, issue-ID commit evidence, or squash/import release evidence exists.
 
+The issue may already be in `Done` when this skill runs, because the implementer's closing magic word (`Fixes HCL-123`) makes Linear auto-move it on merge. Treat an already-`Done` issue as expected: still verify the evidence, update the dashboard, post the closeout comment, and strip `llm-*` and `in-use`. Moving status to `Done` is then a no-op. Do not reopen the issue or treat already-`Done` as an error or as a reason to skip the closeout finalization.
+
+## Claim Lock
+
+Follow the Claim Lock Rule in `docs/workflow.md`. On start, re-read the issue; if it already carries `in-use` and this run is not resuming its own claim, stop and report the issue as claimed without changing it. Otherwise add the `in-use` label when claiming the issue. `in-use` is outside the `llm-*` namespace, so the closeout `llm-*` strip does not remove it; remove `in-use` explicitly during finalization (and on any blocked or abandoned stop).
+
+When claiming, write the `linear-ai:claim` block to the issue description (`templates/linear-claim-block.md`) with `claimed_by: linear-close` and an ISO 8601 `claimed_at`. During finalization, remove the claim block together with removing the `in-use` label.
+
 ## Linear MCP Contract
 
 Use these Linear MCP tools when available:
@@ -25,7 +33,7 @@ Use these Linear MCP tools when available:
 - `get_issue` - read the issue description dashboard, labels, status, project, branch metadata, and links.
 - `list_comments` - find newest marked plan/status comments and prior closeout evidence.
 - `save_comment` - post the final immutable marked status/closeout comment or blocked closeout evidence.
-- `save_issue` - update the issue description dashboard, move status to `Done`, remove all `llm-*` labels, and preserve cumulative `sp-*` labels.
+- `save_issue` - update the issue description dashboard, move status to `Done`, remove all `llm-*` labels, remove the `in-use` claim, and preserve cumulative `sp-*` labels.
 
 Use Git/GitHub evidence when available:
 
@@ -90,7 +98,7 @@ Before moving the issue to `Done`, prove all of the following:
 - mainline contains the merge commit, the direct issue-ID commit, equivalent remote mainline evidence, or the expected release file/content evidence
 - CI is complete and successful for the merged PR, merge commit, direct issue-ID commit, or release/main evidence
 - final dashboard/status evidence does not contradict closeout
-- all `llm-*` workflow state labels will be removed
+- all `llm-*` workflow state labels and the `in-use` claim label will be removed
 - cumulative `sp-*` labels will be preserved
 
 If any required evidence is missing, do not close the issue. Post blocked evidence or emit `REQUIRED_LINEAR_MUTATIONS`.
@@ -101,8 +109,9 @@ Successful closeout must:
 
 - update the marked dashboard block in the issue description when present
 - post one final immutable marked status/closeout comment, including both IDs when closeout used an old implemented issue ID after a team move, or the verified file/content and release/main CI evidence when closeout used squash/import release evidence
-- move Linear status to `Done`
+- move Linear status to `Done` (a no-op when a closing magic word already moved it there)
 - remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove the `in-use` claim label
 - preserve cumulative `sp-*` labels such as `sp-clarify`, `sp-plan`, `sp-tdd`, `sp-implement`, `sp-verify`, and `sp-review`
 
 If Linear MCP write tools are unavailable, do not claim labels, status, dashboard, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact issue description, final closeout comment, labels, and status changes.

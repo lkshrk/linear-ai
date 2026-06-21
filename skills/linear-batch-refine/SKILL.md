@@ -27,15 +27,19 @@ Use Linear MCP:
 - Optional filters: team, project, assignee, label, and explicit issue IDs when supplied by the user.
 - `get_issue` and `list_comments` to summarize each candidate before dispatch.
 
+Exclude issues already carrying the `in-use` claim label; another agent is working them.
+
 Support explicit dry-run or list-only mode. In dry-run/list-only mode, show the queue and stop without dispatching subagents or mutating Linear.
 
 Sort the queue by Linear priority first, then oldest-updated issue first. Priority order is Urgent, High, Medium, Low, then No priority/none; within the same priority, sort by `updatedAt` ascending. Show a scoped queue summary with issue ID, title, state label, status, project, updated time, and why the issue is eligible.
 
 Ask for confirmation before dispatch. Process refinement one issue at a time. Complete a full queue pass before asking grouped questions.
 
+When switching focus to a different issue, give a short content summary first per the Ticket Reference Rule in `docs/workflow.md`: name the issue ID and a one-line description of what it is about.
+
 ## Dispatch Rules
 
-Immediately before dispatching each issue, re-read issue state with `get_issue` and `list_comments`. Skip the issue if the current labels no longer include `llm-refine` or `llm-blocked`, and record observed Linear state drift in the summary.
+Immediately before dispatching each issue, re-read issue state with `get_issue` and `list_comments`. Skip the issue if the current labels no longer include `llm-refine` or `llm-blocked`, or if the issue now carries the `in-use` claim label (claimed by another agent), and record observed Linear state drift in the summary.
 
 Dispatch a per-issue subagent with:
 
