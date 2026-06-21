@@ -36,7 +36,7 @@ The skill runs against a **target** repository under review (e.g. `backend`, `we
 
 ```
 scope resolve
-  → fan-out (6 parallel review lanes)
+  → fan-out (parallel review lanes)
   → collect + normalize findings
   → fingerprint
   → dedup (drop ledger-ignored, ledger-ticketed, and live Linear fingerprint matches)
@@ -48,26 +48,81 @@ scope resolve
 
 ## Review Lanes
 
-Six parallel reviewer subagents cover 13 dimensions. Each finding is tagged with its
-specific dimension regardless of which lane produced it.
+`linear-review` reuses the review vocabulary already defined in
+`docs/agent-required-passes.md` (the Mandatory Implementation Review Loop): the finding
+shape, the severity ladder, the evidence/confidence gates, and the stay-in-lane rule. It
+does **not** invent a parallel taxonomy. The differences from the implementation review
+loop: scope can be whole-repo (not only a diff), disposition is ticket / ignore / defer
+(not fix / justify), and findings persist via a fingerprint ledger.
+
+Every lane is an **independent parallel subagent** — fresh context, no shared state, one
+lens each — dispatched in a single batch and collected when all return. This mirrors the
+parallel reviewer fan-out the implementation review loop already uses. Lanes are split by
+**detection method**, because the right tool differs by dimension.
+
+### Reasoning lanes (LLM reads code)
+
+Each runs in fresh context, owns one lens, stays in lane, and carries the adversarial
+self-audit and false-positive blocklist (see below).
 
 | Lane | Dimensions |
 |---|---|
 | Correctness | bugs, silent-failures / error-handling, concurrency / races |
-| Security & deps | security, dependency-health (CVE / outdated / unused) |
-| Maintainability | code-smell, refactoring, duplication, docs / naming / type-safety |
+| Security | taint paths, broken access control, authn/session, crypto, secrets in logs |
+| Maintainability | code-smell, refactoring, duplication, docs / naming / type-safety, handrolled-vs-lib |
 | Performance | optimization |
-| Dead weight | dead code, handrolled-vs-lib |
 | Tests | test gaps |
+| Spec / scope | **diff mode only**, when a ready plan exists: requirement-by-requirement MET / NOT MET / EXTRA |
 
-Each finding returns:
+### Tool-backed lanes (run analyzer, report its output)
 
-- `dimension`
-- `severity` — `critical | high | medium | low`
-- `anchor` — `file:symbol`
-- `snippet` — the offending code
-- `why` — the problem
-- `suggested_fix`
+These run a static analyzer and report its findings. Whole-program analysis catches what
+an LLM reading snippets misses (dead code) and would hallucinate; tool output is ground
+truth, so these findings carry `confidence: HIGH` and near-zero false positives.
+
+| Lane | Tooling |
+|---|---|
+| Dead-weight | unused exports / files / code — `knip`, `ts-prune` (or ecosystem equivalent) |
+| Dependency-health | CVEs + unused/outdated deps — `npm audit` / `osv-scanner`, `depcheck` |
+
+The Spec lane is skipped in whole-repo audits. In whole-repo mode: 5 reasoning + 2
+tool-backed lanes. In diff mode with a ready plan: +1 Spec lane.
+
+### Finding shape
+
+Each finding follows the `docs/agent-required-passes.md` block, extended with a
+`dimension` sub-tag and the dedup `fp`:
+
+```text
+SEVERITY: CRITICAL | HIGH | MEDIUM | LOW | NIT
+CONFIDENCE: HIGH | MEDIUM | LOW
+LENS: correctness | security | maintainability | performance | tests | spec | dead-weight | deps
+DIMENSION: <specific dimension, e.g. concurrency-race>
+LOCATION: <file>:<symbol>            # symbol-anchored, not line-anchored (see Fingerprint)
+PROBLEM: one sentence — what is wrong and why it matters
+EVIDENCE: the exact code span, or the input → state → wrong-outcome path
+RECOMMENDATION: concrete fix (CRITICAL/HIGH) or "fix or justify" (MEDIUM/LOW)
+FP: <fingerprint>
+```
+
+Severity is the realistic worst case, not the theoretical maximum.
+
+### Gates and discipline (reused from the implementation review loop)
+
+- **Evidence gate** — no CRITICAL/HIGH without a cited location and a named failure path.
+  A bug finding that cannot name a failing case is marked `CONFIDENCE: LOW`.
+- **Confidence gate** — a low-confidence finding is surfaced but does not auto-ticket
+  (see Triage).
+- **Stay in lane** — report only your lens; an out-of-lane spot is one line, not a finding.
+- **Adversarial self-audit** — before emitting any CRITICAL/HIGH, the reviewer must answer:
+  "Could the author refute this with context I'm missing?" and "Is this a genuine defect
+  or a stylistic preference?" If refutable or preference, drop or downgrade.
+- **False-positive blocklist** — each reasoning-lane prompt carries a verbatim list of
+  patterns not to flag: framework-handled errors (middleware, error boundaries, top-level
+  catch), validation already done by callers (trace one caller before flagging), HTTP
+  status codes and well-known constants as "magic numbers", long switch/test-table/config
+  bodies as "function too long", null-deref where a guard is visible in scope, hardcoded
+  values in tests/fixtures/docs.
 
 ## Fingerprint & Ledger
 
@@ -122,14 +177,15 @@ Triage **mode** is chosen at kickoff and controls presentation:
 2. **Bulk table** — mark each finding ticket / ignore / defer in one pass.
 3. **One at a time** — questioner-style, each finding discussed individually.
 
-**Severity** controls ordering and default dispositions. Findings are grouped by tier:
+**Severity and confidence** control ordering and default dispositions. Findings are grouped
+by tier; a low-confidence CRITICAL/HIGH does not auto-ticket — it lands in an **Open
+Questions** group for drill-down or defer.
 
-| Tier | Default disposition |
-|---|---|
-| Critical | ticket |
-| High | ticket |
-| Medium | defer |
-| Low | defer |
+| Tier | High confidence | Low confidence |
+|---|---|---|
+| Critical / High | ticket | Open Questions (defer) |
+| Medium | defer | defer |
+| Low / NIT | defer | defer |
 
 `ignore` is **never** a default. It is a durable human statement and only ever the result
 of an explicit choice, so the ledger gains `ignored` entries by deliberate action, never by
