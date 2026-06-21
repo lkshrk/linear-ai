@@ -32,6 +32,16 @@ The skill runs against a **target** repository under review (e.g. `backend`, `we
   findings at or above that severity; the rest are auto-**deferred** (not ignored — they
   return next run).
 
+## Kickoff Choices
+
+The skill confirms four things before fanning out (scope is arg-derived; the rest are asked,
+each with a recommended default):
+
+1. **Scope** — whole-repo vs diff, from the argument.
+2. **Severity threshold** — `--min`, default none (surface all, defaults handle the noise).
+3. **Triage mode** — Hybrid (default) / Bulk table / One at a time.
+4. **Handoff mode** — Draft only (default) / Draft + refine.
+
 ## Pipeline
 
 ```
@@ -197,8 +207,7 @@ Each chosen finding becomes a Linear issue following `linear-create-issue` conve
 
 - `bug` label for bugs, security, and silent-failure findings; otherwise a tech-debt-style
   classification (feature / enhancement).
-- `llm-refine` so the issue enters the normal pipeline. (Open question — see below — whether
-  some findings should enter at `llm-ready` instead.)
+- `llm-refine` so the issue enters the normal pipeline.
 - A marked footer for live dedup:
   `<!-- linear-ai:review-finding fp=... dimension=... -->`
 - Default one ticket per finding; the skill offers to group near-duplicate findings into a
@@ -206,6 +215,17 @@ Each chosen finding becomes a Linear issue following `linear-create-issue` conve
 
 When a finding is `ticketed`, its fingerprint is written to the ledger with `state: ticketed`
 and the resulting `issue` ID.
+
+### Handoff mode (chosen at kickoff)
+
+After tickets are created the skill either stops or chains straight into refinement:
+
+- **Draft only** (default) — tickets land at `llm-refine`; the skill stops and recommends
+  `linear-refine` / `linear-batch-refine` as the next step via the standalone continuation
+  prompt.
+- **Draft + refine** — the skill chains directly into `linear-refine` (or
+  `linear-batch-refine` for several) on the freshly created tickets, carrying the finding's
+  evidence and suggested fix in as refinement context.
 
 ## Files to Add
 
@@ -226,9 +246,3 @@ Matches the existing skill anatomy (SKILL.md → agents/*.md + docs/*.md + schem
   and label changes; the ledger is still written locally.
 - **Clean review** → report "no new findings" plus dedup counts (X ignored, Y already
   ticketed) so the run is auditable.
-
-## Open Question
-
-- Should review-created tickets land at `llm-refine` (full funnel) or `llm-ready` (skip
-  refinement, since the finding already names the fix)? Current design: `llm-refine` for
-  all, revisit if findings prove consistently implementation-ready.
