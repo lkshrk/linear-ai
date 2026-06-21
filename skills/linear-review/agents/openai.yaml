@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Review"
+  short_description: "Run parallel reviewer subagents across a repo or diff and triage findings into Linear tickets."
+  default_prompt: "Use $linear-review to review this repository and surface findings as Linear tickets."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for issue reads, dedup, ticket creation, and ledger management."
+policy:
+  allow_implicit_invocation: true

@@ -46,6 +46,8 @@ async function main(): Promise<number> {
     await assertContains(path.join(ROOT, "docs/implementer.md"), "Run in auto mode for safe, reversible implementation work from a valid ready plan.");
     await assertContains(path.join(ROOT, "docs/orchestrator.md"), "the same required implementer permission context used by direct `linear-implement` runs");
     await assertContains(path.join(ROOT, "docs/implementer.md"), "the next step is destructive or irreversible");
+    await assertContains(path.join(ROOT, "skills/linear-review/SKILL.md"), "name: linear-review");
+    await assertContains(path.join(ROOT, "skills/linear-review/SKILL.md"), "Dispatch the review lanes as independent parallel subagents");
 
     const listOutput = await run("npx", ["-y", "skills", "add", ROOT, "--list"], ROOT);
     for (const skill of [
@@ -58,7 +60,8 @@ async function main(): Promise<number> {
       "linear-close",
       "linear-deliver-feature",
       "linear-status",
-      "linear-doctor"
+      "linear-doctor",
+      "linear-review"
     ]) {
       if (!listOutput.includes(skill)) throw new Error(`npx skills list did not include ${skill}`);
     }

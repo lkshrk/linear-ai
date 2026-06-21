@@ -1,0 +1,53 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: linear-ai.review-ledger.v1
+title: Linear AI Review Ledger
+type: object
+additionalProperties: false
+required:
+  - schema
+  - entries
+properties:
+  schema:
+    const: linear-ai.review-ledger.v1
+  entries:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - fp
+        - state
+        - category
+        - anchor
+        - recorded_at
+      properties:
+        fp:
+          type: string
+          minLength: 1
+        state:
+          enum: [ignored, ticketed]
+        category:
+          type: string
+          minLength: 1
+        anchor:
+          type: string
+          minLength: 1
+        issue:
+          type: [string, "null"]
+        reason:
+          type: string
+        recorded_at:
+          # ISO 8601 timestamp the entry was recorded.
+          type: string
+          minLength: 1
+      allOf:
+        - if:
+            properties:
+              state:
+                const: ticketed
+          then:
+            required: [issue]
+            properties:
+              issue:
+                type: string
+                minLength: 1

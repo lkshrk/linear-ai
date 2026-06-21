@@ -22,6 +22,7 @@
     "skills:smoke": "bun scripts/skills_smoke.ts",
     "hooks:install": "lefthook install",
     "hooks:run": "lefthook run pre-commit --all-files && lefthook run pre-push --all-files",
+    "validate:ledger": "bun scripts/validate_review_ledger.ts examples/review-ledger.yaml",
     "validate:node": "tsx scripts/validate_marked_comments.ts templates/linear-plan-comment.md templates/linear-status-comment.md templates/linear-dashboard-comment.md examples/plan-comment.md examples/status-comment.md examples/dashboard-comment.md examples/review-ready-status-comment.md examples/review-ready-dashboard-comment.md",
     "metadata:node": "tsx scripts/linear_metadata.ts",
     "intake:node": "tsx scripts/intake_issue.ts",

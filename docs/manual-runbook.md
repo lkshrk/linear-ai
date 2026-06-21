@@ -81,6 +81,20 @@ Stop when implementation can continue without assumptions.
 
 Tip: use `scripts/extract_marked_comment.ts --kind status` to isolate the newest implementer status comment from a copied thread.
 
+## Review Run
+
+Use when a repo or branch needs a code-quality pass with findings triaged into Linear issues.
+
+1. Run `linear-review` against a target repo (whole-repo mode) or a base ref/PR (diff mode).
+2. Confirm kickoff choices: severity threshold, triage mode, and handoff mode.
+3. Let it dispatch parallel reviewer subagents (correctness, security, maintainability, performance, tests; spec lane in diff mode; dead-weight and dependency-health tool-backed lanes).
+4. Let it dedup findings against the local `.linear-ai/review-ledger.yaml` and open Linear issues carrying a `linear-ai:review-finding` footer, then triage survivors with you into `llm-refine` issues.
+5. If Linear writes are unavailable, apply the emitted `REQUIRED_LINEAR_MUTATIONS`.
+
+Note: `linear-review` takes no `in-use` claim and introduces no new `llm-*` state.
+
+Stop when findings are triaged and chosen ones are filed as issues (or `REQUIRED_LINEAR_MUTATIONS` emitted).
+
 ## Review Handoff
 
 Use when implementation is complete.

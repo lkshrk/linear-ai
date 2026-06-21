@@ -75,6 +75,7 @@ codex mcp login linear
 - `linear-deliver-feature` - run the full create/refine/implement/review/closeout workflow.
 - `linear-status` - inspect an issue and recommend the next workflow step.
 - `linear-doctor` - check required Linear teams, projects, and labels.
+- `linear-review` - run parallel reviewers, dedup findings, and turn survivors into Linear tickets.
 
 ## Usage
 
@@ -157,6 +158,7 @@ bun scripts/create_release.ts patch --dry-run
 - `schemas/` - machine-readable YAML schemas.
 - `scripts/` - validators and install smoke checks.
 - `docs/install.md` - detailed install notes.
+- `docs/reviewer.md` - linear-review pipeline, dedup, triage, and ledger contract.
 - `docs/marketplace.md` - tap-style marketplace distribution.
 - `docs/tools.md` - helper command reference.
 - `docs/superpowers-linear-persistence.md` - Linear dashboard persistence contract.

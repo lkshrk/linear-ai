@@ -231,6 +231,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
     "linear-doctor",
     "linear-implement",
     "linear-refine",
+    "linear-review",
     "linear-status"
   ]);
 

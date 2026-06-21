@@ -72,6 +72,7 @@ That manifest declares the skill paths explicitly so tools that understand Claud
 - `linear-deliver-feature`
 - `linear-status`
 - `linear-doctor`
+- `linear-review`
 
 The project does not duplicate skill bodies under `.claude/skills/`; use the skills CLI to install or symlink them into Claude Code.
 

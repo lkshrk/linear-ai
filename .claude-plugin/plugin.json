@@ -12,6 +12,7 @@
     "./skills/linear-close",
     "./skills/linear-deliver-feature",
     "./skills/linear-status",
-    "./skills/linear-doctor"
+    "./skills/linear-doctor",
+    "./skills/linear-review"
   ]
 }
