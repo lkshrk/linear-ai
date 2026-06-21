@@ -1,7 +1,6 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: linear-ai.review-ledger.v1
 title: Linear AI Review Ledger
-# Standalone gitignored file in the target repo. One entry per finding fingerprint.
 type: object
 additionalProperties: false
 required:
@@ -42,7 +41,6 @@ properties:
           type: string
           minLength: 1
       allOf:
-        # A ticketed finding must carry the created issue id.
         - if:
             properties:
               state:
