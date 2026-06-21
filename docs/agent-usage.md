@@ -12,6 +12,7 @@ Prefer the plugin skill names when available:
 - `linear-batch-implement` for ready-plan implementation queues.
 - `linear-batch-close` for post-review closeout queues.
 - `linear-deliver-feature` for the combined create/refine/implement/review/closeout workflow.
+- `linear-review` for parallel code review that turns findings into tickets.
 
 ## Shared Invocation Pattern
 
@@ -149,6 +150,24 @@ Expected output:
 - applied Linear changes, or `REQUIRED_LINEAR_MUTATIONS` if writes are unavailable
 
 Do not use orchestrator to decide product behavior.
+
+## Reviewer
+
+Use `agents/reviewer.md`.
+
+Use when:
+
+- a repo or branch/PR needs a code-quality review
+- the user wants findings turned into Linear tickets
+- a periodic repo-health audit is wanted
+
+Expected output:
+
+- deduped findings grouped by severity
+- created Linear issues at `llm-refine` carrying the review-finding footer
+- ledger updates for ignored/ticketed findings
+- dedup counts
+- applied Linear changes, or `REQUIRED_LINEAR_MUTATIONS` if Linear writes are unavailable
 
 ## Minimal Prompts
 

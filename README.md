@@ -158,6 +158,7 @@ bun scripts/create_release.ts patch --dry-run
 - `schemas/` - machine-readable YAML schemas.
 - `scripts/` - validators and install smoke checks.
 - `docs/install.md` - detailed install notes.
+- `docs/reviewer.md` - linear-review pipeline, dedup, triage, and ledger contract.
 - `docs/marketplace.md` - tap-style marketplace distribution.
 - `docs/tools.md` - helper command reference.
 - `docs/superpowers-linear-persistence.md` - Linear dashboard persistence contract.
