@@ -1,0 +1,16 @@
+schema: linear-ai.review-ledger.v1
+entries:
+  - fp: "smell:src/auth/token.ts:verify:d4e5f6"
+    state: ignored
+    category: code-smell
+    anchor: "src/auth/token.ts:verify"
+    issue: null
+    reason: "perf hot path, readability traded knowingly"
+    recorded_at: "2026-06-21T14:32:00Z"
+  - fp: "security:src/db/query.ts:run:a1b2c3"
+    state: ticketed
+    category: security
+    anchor: "src/db/query.ts:run"
+    issue: HCL-123
+    reason: ""
+    recorded_at: "2026-06-21T14:35:00Z"
