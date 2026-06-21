@@ -60,6 +60,8 @@ The ledger is local-only and per-clone. A fresh clone or CI re-surfaces findings
 - live Linear search for an open issue carrying the `linear-ai:review-finding` footer with the same `fp` -> cross-machine backstop, so a fresh clone or a second developer does not double-file.
 - `defer` at triage -> not written to the ledger; re-surfaces next run.
 
+Beyond exact-`fp` dedup, group surviving findings by anchor (`file:symbol`) across lanes before triage. Because the fingerprint prefixes the lane/category, the same code spot flagged by two lanes carries two distinct `fp`s and would otherwise file two tickets; co-located findings collapse into one finding carrying each lane's note and produce one ticket. Each lens note keeps its own `fp` in the ledger so dedup stays per-lens on later runs.
+
 Report the dedup counts (how many findings were dropped as ignored vs already ticketed) so each run is auditable.
 
 ## Triage
@@ -75,8 +77,10 @@ A low-confidence CRITICAL/HIGH does not auto-ticket; it lands in an Open Questio
 | Tier | High confidence | Low confidence |
 | --- | --- | --- |
 | Critical / High | ticket | Open Questions (defer) |
-| Medium | defer | defer |
+| Medium | ticket | defer |
 | Low / NIT | defer | defer |
+
+High-confidence MEDIUM defaults to ticket, not defer: a review whose purpose is filing tickets should not silently drop confirmed defects and test gaps. Low-confidence MEDIUM still defers and returns next run at no cost.
 
 `ignore` is never a default. It is a durable human statement and only ever the result of an explicit choice, so the ledger gains `ignored` entries by deliberate action, never by a default sweep. The user may accept-all-defaults in one keystroke or override per finding.
 

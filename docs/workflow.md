@@ -100,8 +100,8 @@ If merged PR or direct issue-ID commit evidence, moved old-ID implementation evi
 1. Human runs `linear-review` against a target repo (whole repo) or a base ref/PR (diff).
 2. The skill confirms kickoff choices: severity threshold, triage mode, handoff mode.
 3. It dispatches parallel reviewer subagents — reasoning lanes (correctness, security, maintainability, performance, tests; spec in diff mode) and tool-backed lanes (dead-weight, dependency-health) — per `agents/reviewer.md`.
-4. Findings are fingerprinted and deduped against the local `.linear-ai/review-ledger.yaml` and open Linear issues carrying the `linear-ai:review-finding` footer.
-5. Survivors are triaged with the human. Each chosen finding becomes a Linear issue at `llm-refine` with the finding footer, and its fingerprint is recorded `ticketed`. Explicitly ignored findings are recorded `ignored` and never resurface; deferred findings are not recorded and return next run.
+4. Findings are fingerprinted and deduped against the local `.linear-ai/review-ledger.yaml` and open Linear issues carrying the `linear-ai:review-finding` footer, then survivors are grouped by anchor (`file:symbol`) so the same code spot flagged by several lanes becomes one ticket rather than one per lane.
+5. Survivors are triaged with the human. Default disposition is confidence-aware: high-confidence Critical/High and Medium findings default to a ticket; low-confidence and Low/NIT default to defer. Each chosen finding becomes a Linear issue at `llm-refine` with the finding footer, and its fingerprint is recorded `ticketed`. Explicitly ignored findings are recorded `ignored` and never resurface; deferred findings are not recorded and return next run.
 6. In draft-only handoff the skill stops and recommends refinement; in draft + refine it chains into `linear-refine`.
 
 Review creates issues that enter the normal Refinement -> Implementation -> Closeout lifecycle. It introduces no new `llm-*` state and takes no `in-use` claim.

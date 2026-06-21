@@ -82,7 +82,7 @@ self-audit and false-positive blocklist (see below).
 | Maintainability | code-smell, refactoring, duplication, docs / naming / type-safety, handrolled-vs-lib |
 | Performance | optimization |
 | Tests | test gaps |
-| Spec / scope | **diff mode only**, when a ready plan exists: requirement-by-requirement MET / NOT MET / EXTRA |
+| Spec / scope | **diff mode only**: requirement-by-requirement MET / NOT MET / EXTRA. Requirement source is the ready plan if present, else the commit messages / PR description in range |
 
 ### Tool-backed lanes (run analyzer, report its output)
 
@@ -96,7 +96,8 @@ truth, so these findings carry `confidence: HIGH` and near-zero false positives.
 | Dependency-health | CVEs + unused/outdated deps — `npm audit` / `osv-scanner`, `depcheck` |
 
 The Spec lane is skipped in whole-repo audits. In whole-repo mode: 5 reasoning + 2
-tool-backed lanes. In diff mode with a ready plan: +1 Spec lane.
+tool-backed lanes. In diff mode: +1 Spec lane (its requirement source is the ready plan
+if present, else the commit messages / PR description for the range).
 
 ### Finding shape
 
@@ -172,6 +173,13 @@ fp = category + coarse_anchor(file or symbol) + content_hash(normalized snippet)
   a second developer does not double-file an existing ticket.
 - **defer** at triage → not written to the ledger; re-surfaces next run.
 
+Beyond exact-fingerprint dedup, **group surviving findings by anchor (file:symbol) across
+lanes before triage**. The fingerprint carries the lane/category as a prefix, so the same
+code spot flagged by two lanes (e.g. a field flagged by both Maintainability and Spec) has
+two distinct fingerprints and would otherwise create two tickets. Co-located findings
+collapse into one finding carrying each lane's note, and produce one ticket. Each lens note
+keeps its own fingerprint in the ledger so dedup stays per-lens on later runs.
+
 ### Local-only consequence (accepted)
 
 The ledger is gitignored, so ignore decisions are per-clone. A fresh clone or CI re-surfaces
@@ -194,8 +202,13 @@ Questions** group for drill-down or defer.
 | Tier | High confidence | Low confidence |
 |---|---|---|
 | Critical / High | ticket | Open Questions (defer) |
-| Medium | defer | defer |
+| Medium | ticket | defer |
 | Low / NIT | defer | defer |
+
+High-confidence MEDIUM defaults to **ticket**, not defer: a review whose purpose is filing
+tickets should not silently drop confirmed defects and test gaps. Low-confidence MEDIUM
+still defers (it returns next run at no cost). The user can always override per finding or
+accept-all-defaults.
 
 `ignore` is **never** a default. It is a durable human statement and only ever the result
 of an explicit choice, so the ledger gains `ignored` entries by deliberate action, never by

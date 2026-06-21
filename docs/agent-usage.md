@@ -163,8 +163,8 @@ Use when:
 
 Expected output:
 
-- deduped findings grouped by severity
-- created Linear issues at `llm-refine` carrying the review-finding footer
+- deduped findings, grouped by anchor across lanes and ranked by severity
+- created Linear issues at `llm-refine` carrying the review-finding footer (high-confidence Critical/High/Medium default to a ticket; low-confidence and Low/NIT default to defer)
 - ledger updates for ignored/ticketed findings
 - dedup counts
 - applied Linear changes, or `REQUIRED_LINEAR_MUTATIONS` if Linear writes are unavailable

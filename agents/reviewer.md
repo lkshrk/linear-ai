@@ -15,7 +15,7 @@ Each carries the gates, adversarial self-audit, and false-positive blocklist bel
 - **Maintainability** — named code smells (long method, large class, long parameter list, data clumps, duplication, speculative generality, feature envy, message chains), refactoring moves, misleading names, stale comments, weak types, public-API doc gaps, and handrolled code that a well-known library would do better. Suggestions only; no behavior change.
 - **Performance** — algorithmic complexity, N+1 queries, needless allocation/copies, blocking on hot paths, missing memoization where it matters.
 - **Tests** — behaviors and edge cases implied by the code that have no test, missing failure-path coverage, assertions that cannot fail.
-- **Spec / scope** — diff mode only, when a ready plan exists. Extract a numbered requirement list from the plan's acceptance criteria, mark each MET / NOT MET / PARTIALLY MET, and flag every diff behavior with no matching requirement as EXTRA.
+- **Spec / scope** — diff mode only. Requirement source is the ready plan's acceptance criteria if present, else the commit messages / PR description for the range. Extract a numbered requirement list, mark each MET / NOT MET / PARTIALLY MET, and flag every diff behavior with no matching requirement as EXTRA.
 
 ### Tool-backed lanes (run analyzer, report its output)
 
