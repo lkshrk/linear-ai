@@ -36,7 +36,7 @@ Sort the queue by Linear priority first, then oldest-updated issue first. Priori
 
 Ask for confirmation before dispatch. Ask for one global maximum parallelism value after queue discovery and before dispatch. Cap parallelism at 6. Do not choose unbounded or default implementation parallelism.
 
-When switching focus to a different issue, give a short content summary first per the Ticket Reference Rule in `docs/workflow.md`: name the issue ID and a one-line description of what it is about.
+When switching focus to a different issue, give a short content summary first per the Ticket Reference Rule in `docs/workflow.md`: name the issue ID, exact issue title, and a one-line description of what it is about.
 
 ## Dispatch Rules
 

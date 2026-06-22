@@ -55,7 +55,7 @@ Tip: when working from a copied Linear thread, use `scripts/extract_marked_comme
 
 Use when an issue has `llm-ready`.
 
-1. Start `agents/implementer.md` in the target issue worktree or equivalent isolated repo worktree with the required implementer permission context active: workspace write access, package manager and verification command permission, Linear MCP read/write tools, Git/GitHub tools when branch or PR work is in scope, and required project MCP tools.
+1. Start `agents/implementer.md` in the target issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>` with the required implementer permission context active: workspace write access, package manager and verification command permission, Linear MCP read/write tools, Git/GitHub tools when branch or PR work is in scope, and required project MCP tools.
 2. Provide the Linear issue URL and newest marked ready plan comment.
 3. Confirm target repository or repositories.
 4. Let the implementer create or update the issue worktree Git ref and draft PR.

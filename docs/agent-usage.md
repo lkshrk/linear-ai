@@ -81,12 +81,12 @@ Use when:
 
 - an issue has `llm-ready`
 - a valid marked plan has `plan_status: ready`
-- there is a target issue worktree or isolated repo worktree
+- there is a target issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>`
 
 Expected output:
 
 - code changes in the target repo or repos
-- explicit final destination answer: default branch (`main`/`master`), feature branch without PR, or feature branch with PR
+- explicit final destination evidence: default integration to local main branch, or an issue-explicit feature branch/PR handoff exception
 - branch or PR evidence matching the chosen destination
 - marked status comment
 - completed checklist items

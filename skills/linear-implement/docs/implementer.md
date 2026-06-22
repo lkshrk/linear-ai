@@ -44,7 +44,9 @@ Before changing any code, once the issue is claimed:
 - The dashboard task list uses stable ready-plan task IDs, CLI-style state symbols, and `last_checked` evidence from repo/worktree/verification inspection.
 - Use subagents heavily for independent investigation, implementation, review, and verification lanes.
 - Parallelize independent checklist items whenever they can be isolated without shared-file conflicts.
-- Work in an isolated issue worktree for the issue unless the agent can prove it is already inside the correct issue worktree.
+- Implementation always happens in an isolated issue worktree. Never implement directly on branches as the working tree, and never implement directly on `main` or `master`.
+- The issue worktree path must be `<repo>/.worktrees/<issue-id>-<optional suffix>`, for example `backend/.worktrees/HCL-123` or `backend/.worktrees/HCL-123-api`.
+- Work in the isolated issue worktree unless the agent can prove it is already inside the correct issue worktree.
 - Treat branch names and Git refs from Linear or the ready plan as Git plumbing attached to the issue worktree, not as the primary workspace.
 - Prefer git worktree isolation for parallel code-changing subagents so each lane can run tests and edits independently.
 - Before dispatching subagents, verify they have the right tools and permissions for their lane: repo read/write scope, test commands, package manager, Linear read tools, and any required MCP access.
@@ -124,17 +126,25 @@ Clean up temporary lane worktrees after their lane is merged and verified. If a 
 
 ## Implementation Review Loop
 
-When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate and before applying `llm-review`. Dispatch independent parallel review subagents (general, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides), then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence. Bound the loop and block to the human if it will not converge. After convergence, pass the confidence and test-gap self-gates. Implementation is complete only when the loop converges and both self-gates pass.
+When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate and before applying `llm-review`. Dispatch independent parallel review subagents (general, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides), then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence. The loop has a maximum of five review rounds unless the issue itself explicitly requires a different cap. After each review round, post or emit a round summary with the round number, reviewers/lenses run, findings by severity, fixed findings, justified findings, deferred or blocked findings, verification rerun, and whether the loop will continue, has converged, or is blocked. If the loop does not converge by the cap, post a blocked status for human direction. After convergence, pass the confidence and test-gap self-gates. Implementation is complete only when the loop converges and both self-gates pass.
 
 ## Final Destination Gate
 
-Implementation happens in the issue worktree first. After implementation, verification, and the Implementation Review Loop are complete, ask the human what to do with the finished code before performing any destination action.
+Implementation happens only in the issue worktree first. The issue worktree lives at `<repo>/.worktrees/<issue-id>-<optional suffix>`. Branches, `main`, and `master` are final destinations or Git refs attached to the worktree; they are never the initial implementation workspace. After implementation, verification, and the Implementation Review Loop are complete, integrate by the default path unless the issue itself contains an explicit requirement or rule for a different handoff.
 
-The allowed choices are:
+The default integration path is:
 
-- merge to the default branch (`main` or `master`)
-- create or update a feature branch without a PR
-- create or update a feature branch with a PR
+- rebase the issue worktree onto the local main branch,
+- squash to the minimal number of squashed commits that preserves reviewable behavior and rollback boundaries,
+- integrate those commits into the local main branch.
+
+A ticket is completed only when the code is in the main branch. An open PR is not sufficient for ticket completion. Feature branches and PRs are review handoff states, not completed ticket states, unless the issue itself explicitly requires a different terminal path.
+
+The allowed status destinations remain:
+
+- integrate to the default branch (`main` or `master`) for completion,
+- create or update a feature branch without a PR only when the issue explicitly requires that handoff,
+- create or update a feature branch with a PR only when the issue explicitly requires that handoff or human review before main integration.
 
 Record the answer in the status comment as:
 
@@ -160,7 +170,7 @@ PR title source of truth when the PR destination is chosen:
 
 Use the same draft PR for later plan revisions when the human chose a PR destination unless scope changes enough that a new PR is cleaner.
 
-Before finalizing completed work, ask whether the result should be merged to the default branch (`main` or `master`), left on a feature branch without PR, or put on a feature branch with PR. The destination branch or PR is distinct from the issue worktree where implementation happens. Do not assume the destination when more than one is technically possible.
+Before finalizing completed work, use the default integration path to the local main branch unless the issue itself explicitly requires a feature branch or PR handoff. The destination branch or PR is distinct from the issue worktree where implementation happens. Do not treat an open PR as completed ticket evidence.
 
 At a completed blocker, abandoned, or review-ready implementation handoff, ask whether there is anything else to add. If the answer is no, ask whether the user wants to continue with the recommended next skill, normally `linear-refine` for blockers or `linear-close` after merge evidence exists. Name the recommended skill or review action and wait for confirmation; do not auto-run it.
 
@@ -173,7 +183,7 @@ The PR can be marked ready only when:
 
 ## Commit Rules
 
-Leave a reasonable amount of commits: enough to make review and rollback clear, not one commit per tiny edit and not one huge commit for unrelated changes.
+Leave a reasonable amount of commits: the minimal number of squashed commits that makes review and rollback clear, not one commit per tiny edit and not one huge commit for unrelated changes.
 
 Use semver syntax through Conventional Commit style for every commit subject, and include the Linear issue ID:
 
@@ -188,7 +198,7 @@ Allowed commit types include `feat`, `fix`, `docs`, `test`, `refactor`, `chore`,
 
 Add Linear magic-word linking so the issue auto-links and advances status (In Progress on push/open, Done when the change reaches the default branch). Use a closing magic word plus the issue ID: in the PR description when the destination includes a PR (for example `Fixes HCL-123`, or `Fixes HCL-123, HCL-124` for multiple issues; magic words do not work in PR comments), or in the commit message body for direct-to-branch destinations. Closing magic words: `close/closes/closed/closing`, `fix/fixes/fixed/fixing`, `resolve/resolves/resolved/resolving`, `complete/completes/completed/completing`, `implements/implemented/implementing`; prefer `Fixes`. The Conventional Commit subject keeps the `(HCL-123)` scope; the magic word drives the automation. Because this moves the issue to Done on merge, `linear-close` reconciles an already-Done issue rather than treating it as an error.
 
-Each commit should compile or clearly state why it is an intermediate checkpoint. Before final handoff, report the commit list and whether the work is on `main`/`master`, a feature branch without PR, or a feature branch with PR.
+Each commit should compile or clearly state why it is an intermediate checkpoint. Before final handoff, report the commit list and whether the work is integrated into the local main branch or is using an issue-explicit feature branch/PR handoff exception.
 
 ## Workspace Cleanup
 
@@ -227,7 +237,7 @@ That plan should include:
 - commands that prove the tests pass
 - commit checkpoints
 - planned commit boundaries using semver syntax and the issue ID
-- final destination question: default branch (`main`/`master`), feature branch without PR, or feature branch with PR
+- final destination evidence: default integration to local main branch, or an issue-explicit feature branch/PR handoff exception
 - workspace cleanup plan for temporary lane worktrees and the persistent issue worktree
 
 If the implementer cannot write a concrete TDD plan without guessing, it must ask batched questions instead of coding.

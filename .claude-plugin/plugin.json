@@ -13,6 +13,7 @@
     "./skills/linear-deliver-feature",
     "./skills/linear-status",
     "./skills/linear-doctor",
-    "./skills/linear-review"
+    "./skills/linear-review",
+    "./skills/linear-repo-reconcile"
   ]
 }

@@ -64,7 +64,8 @@ async function main(): Promise<number> {
       "linear-deliver-feature",
       "linear-status",
       "linear-doctor",
-      "linear-review"
+      "linear-review",
+      "linear-repo-reconcile"
     ]) {
       if (!listOutput.includes(skill)) throw new Error(`npx skills list did not include ${skill}`);
     }

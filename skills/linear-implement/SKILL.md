@@ -51,7 +51,7 @@ Maintain one dashboard block in the issue description with schema `linear-ai.das
 
 Use subagents heavily for independent implementation work. Split the ready plan into parallel lanes by repository, module, checklist item, test surface, review lane, or verification lane when those lanes do not require the same mutable files.
 
-Work in an isolated issue worktree for the issue unless you can prove it is already inside the correct issue worktree. Treat the branch name or Git ref from the ready plan or Linear issue as Git plumbing attached to the issue worktree, not as the primary workspace.
+Implementation always happens in an isolated issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>` unless you can prove it is already inside the correct issue worktree. Never implement directly on branches as the working tree, and never implement directly on `main` or `master`. Treat the branch name or Git ref from the ready plan or Linear issue as Git plumbing attached to the issue worktree, not as the primary workspace.
 
 Prefer git worktree isolation for parallel code-changing subagents. Each code-changing lane should have its own temporary lane worktree or Git ref, run its own focused verification, and report changed files, tests run, remaining risks, and dashboard task IDs. Do not place multiple code-changing subagents in the same working tree.
 
@@ -63,19 +63,23 @@ Clean up temporary lane worktrees after merge-back and verification. Keep tempor
 
 ## Implementation Review Loop
 
-When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the destination question and before applying `llm-review`. Dispatch independent parallel review subagents — always general review, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides — then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence (bounded; block to the human if it will not converge). Then pass the confidence and test-gap self-gates. Implementation is not done until the loop converges and both self-gates pass.
+When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the destination question and before applying `llm-review`. Dispatch independent parallel review subagents — always general review, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides — then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence. The loop has a maximum of five review rounds unless the issue explicitly sets a different cap. After each review round, post or emit a round summary with the round number, reviewers/lenses run, findings by severity, fixed findings, justified findings, deferred or blocked findings, verification rerun, and whether the loop continues, converged, or blocked at the cap. If the cap is reached without convergence, post a blocked status. Then pass the confidence and test-gap self-gates. Implementation is not done until the loop converges and both self-gates pass.
 
 ## Commit and Destination Policy
 
-Do not choose the final code destination. After implementation and verification are complete, but before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting a review-ready handoff, ask the human which destination to use:
+After implementation and verification are complete, use the default integration path unless the issue itself contains an explicit requirement or rule for a different handoff: rebase the issue worktree onto the local main branch, squash to the minimal number of squashed commits that preserves reviewable behavior and rollback boundaries, and integrate into the local main branch.
 
-- merge to the default branch (`main` or `master`)
-- create or update a feature branch without a PR
-- create or update a feature branch with a PR
+A ticket is completed only when the code is in the main branch. An open PR is not sufficient for ticket completion. Feature branches and PRs are review handoff states unless the issue explicitly requires them as the terminal path.
+
+Before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting a review-ready handoff, confirm the destination:
+
+- integrate to the default branch (`main` or `master`) for completion
+- create or update a feature branch without a PR only when the issue explicitly requires that handoff
+- create or update a feature branch with a PR only when the issue explicitly requires that handoff or human review before main integration
 
 Record the answer in `final_destination` as `main`, `master`, `feature_branch`, or `feature_branch_pr`. If the answer is missing, ambiguous, or still `undecided`, stop with `llm-blocked` or emit `REQUIRED_LINEAR_MUTATIONS`; do not infer from the plan, branch name, existing issue worktree, or existing draft PR.
 
-Leave a reasonable amount of commits: split by reviewable behavior or risk boundary, not by every tiny edit and not as one unrelated bulk commit.
+Leave the minimal number of squashed commits: split only by reviewable behavior or risk boundary, not by every tiny edit and not as one unrelated bulk commit.
 
 Use semver syntax through Conventional Commit style and include the Linear issue ID in every commit subject, for example:
 
@@ -90,7 +94,7 @@ test(HCL-123): cover dashboard validation
 Link the work to the Linear issue with a closing magic word plus the issue ID so Linear auto-links and advances status (In Progress on push/open, Done when the change reaches the default branch):
 
 - Feature-branch-with-PR destination: put a closing magic word and the issue ID in the PR description, for example `Fixes HCL-123` (multiple issues: `Fixes HCL-123, HCL-124`). Magic words only work in the PR title or description, not in a PR comment.
-- Direct-to-branch destinations (`main`/`master` or feature branch without PR): add a `Fixes HCL-123` line to the commit message body in addition to the Conventional Commit subject above.
+- Direct-to-main destinations (`main`/`master`): add a `Fixes HCL-123` line to the commit message body in addition to the Conventional Commit subject above. Feature branch without PR is a handoff exception only when the issue explicitly requires it.
 - Closing magic words: `close/closes/closed/closing`, `fix/fixes/fixed/fixing`, `resolve/resolves/resolved/resolving`, `complete/completes/completed/completing`, `implements/implemented/implementing`. Prefer `Fixes`. The Conventional Commit subject keeps the `(HCL-123)` scope for readability and commit-evidence closeout; the magic word drives the Linear automation.
 - Because a closing magic word moves the issue to Done on merge, `linear-close` runs as verify-and-finalize: it tolerates an already-Done issue and still verifies evidence, updates the dashboard, posts the closeout comment, and strips `llm-*` and `in-use`.
 

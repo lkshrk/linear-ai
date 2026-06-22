@@ -23,7 +23,8 @@ Read and follow:
 - When there are no open questions, decompose the ready plan into independent parallel lanes (by repository, module, checklist item, test surface, or verification lane) and hand each lane to its own subagent in an isolated worktree; run lanes touching disjoint files concurrently.
 - Convert the ready Linear plan into a repo-local TDD implementation plan before non-trivial code changes.
 - Use subagents heavily for independent work and run those lanes in parallel when safe.
-- Work in an isolated issue worktree for the issue unless you can prove it is already inside the correct issue worktree.
+- Implementation always happens in an isolated issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>` unless you can prove it is already inside the correct issue worktree.
+- Never implement directly on branches as the working tree, and never implement directly on `main` or `master`.
 - Treat the branch name or Git ref from the ready plan or Linear issue as Git plumbing attached to the issue worktree, not as the primary workspace.
 - Prefer git worktree isolation for parallel code-changing subagents.
 - Before dispatching subagents, verify they have the right tools and permissions: repo access, package manager, test commands, Linear read/write tools as needed, and relevant MCP access.
@@ -35,13 +36,14 @@ Read and follow:
 - Never guess product behavior, API shape, UX, data, security, repo ownership, or acceptance criteria.
 - Use the Git ref specified by the ready plan or Linear issue for the issue worktree.
 - Use the PR title specified by the ready plan when the human chooses a PR destination; if it is missing, ask before opening a PR.
-- After implementation and verification are complete, ask what to do with the finished code before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting review-ready handoff evidence. The choices are: merge to the default branch (`main` or `master`), create or update a feature branch without PR, or create or update a feature branch with PR.
+- After implementation and verification are complete, use the default integration path unless the issue itself contains an explicit requirement or rule for a different handoff: rebase the issue worktree onto the local main branch, squash to the minimal number of squashed commits that preserves reviewable behavior and rollback boundaries, and integrate into the local main branch.
+- A ticket is completed only when the code is in the main branch. An open PR is not sufficient for ticket completion. Feature branch without PR and feature branch with PR are review handoff states unless the issue explicitly requires one as the terminal path.
 - Do not infer the final destination from the issue worktree, branch metadata, an existing draft PR, or local convention. If the human has not chosen, keep `final_destination: undecided` and block instead of review-ready.
 - Before starting direct implementation, verify the required implementer permission context is active: workspace write access, package manager and verification command permission, Linear MCP read/write tools, Git/GitHub tools when branch or PR work is in scope, and any project MCP tools required by the ready plan.
 - Do not begin routine implementation in a prompt-by-prompt permission mode; establish or inherit the required implementer permission context first, or block with missing authority.
 - Run in auto mode for clear, low-risk, reversible local inspect/edit/test/verify work from a valid ready plan. Do not pause for permission between routine implementation steps.
 - Ask or block only for destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing-authority, or genuinely ambiguous actions.
-- Leave a reasonable amount of commits with semver syntax, using Conventional Commit style and including the Linear issue ID in every subject.
+- Leave the minimal number of squashed commits with semver syntax, using Conventional Commit style and including the Linear issue ID in every subject.
 - Add Linear closing magic-word linking (`Fixes HCL-123`) in the PR description when the destination includes a PR, or in the commit message body for direct-to-branch destinations, so Linear auto-links and moves the issue to In Progress on push/open and Done on merge to the default branch. `linear-close` reconciles the already-Done issue.
 - Open or update a draft PR only when the human chose the PR destination or the ready plan explicitly requires a PR.
 - Ask questions in batches, and only after all safe unambiguous work has been completed or isolated.
@@ -52,7 +54,7 @@ Read and follow:
 - Inspect actual code/worktree state before marking a dashboard task done.
 - Clearly list placeholders, skipped items, failed checks, and verification gaps.
 - Use failing tests first, minimal implementation, green verification, then cleanup.
-- When implementation looks complete and verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate or applying `llm-review`: dispatch independent parallel reviewers (general, refactor/code-smell, bug, security, spec/scope verifier, plus any matching language/area reviewer), fix or justify every finding, document each justification in the status comment, repeat rounds to convergence, then pass the confidence and test-gap self-gates.
+- When implementation looks complete and verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the Final Destination Gate or applying `llm-review`: dispatch independent parallel reviewers (general, refactor/code-smell, bug, security, spec/scope verifier, plus any matching language/area reviewer), fix or justify every finding, document each justification in the status comment, and repeat rounds to convergence with a maximum of five review rounds unless the issue explicitly sets a different cap. After each review round, post or emit a round summary with the round number, reviewers/lenses run, findings by severity, fixed findings, justified findings, deferred or blocked findings, verification rerun, and whether the loop continues, converged, or blocked at the cap. If the cap is reached without convergence, post a blocked status. Then pass the confidence and test-gap self-gates.
 - Run the Linear Finalization Pass from `docs/agent-required-passes.md` at start and end of implementation.
 - If Linear MCP write tools are available, update workflow labels/status directly: add `llm-active` and remove all other `llm-*` states when work starts; add `llm-blocked` and remove all other `llm-*` states when questions block work; add `llm-active` and remove all other `llm-*` states when resumed; add `llm-review` and remove all other `llm-*` states when review-ready.
 - If Linear MCP write tools are not available, emit `REQUIRED_LINEAR_MUTATIONS`.

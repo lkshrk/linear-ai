@@ -7,7 +7,16 @@ It gives agents a repeatable path for one issue:
 1. Create or clean up the Linear issue.
 2. Refine it into an implementation-ready plan.
 3. Track progress in one dashboard block in the issue description.
-4. Implement, verify, hand off for review, and close after merge, verified issue-ID commit evidence, or verified squash/import release evidence.
+4. Implement in an issue worktree, verify through bounded review rounds, integrate into main, and close only after mainline evidence is proven.
+
+## Workflow Guarantees
+
+- Ticket references include the issue ID, exact issue title, and a one-line description whenever an agent switches focus.
+- Issue claims use the `in-use` label plus a Linear-visible claim block so other agents can detect active or stale work.
+- Implementation always happens in `<repo>/.worktrees/<issue-id>-<optional suffix>`, never directly on branch working trees, `main`, or `master`.
+- The implementation review loop runs at most five rounds by default and posts a round summary after each round.
+- The default integration path is to rebase the issue worktree onto the local main branch, squash to the minimal number of reviewable commits, and integrate into main.
+- A ticket is complete only when the code is in the main branch. An open PR is review handoff evidence, not completion evidence, unless the issue explicitly requires a different terminal path.
 
 ## Install
 
@@ -67,8 +76,8 @@ codex mcp login linear
 
 - `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.
 - `linear-refine` - interview, clarify, and write a ready implementation plan.
-- `linear-implement` - execute a ready plan, update progress, verify, and prepare review.
-- `linear-close` - verify merged PR, direct issue-ID commit, or squash/import release evidence and close the Linear issue after review.
+- `linear-implement` - execute a ready plan in an issue worktree, update progress, run bounded review rounds, and integrate through the mainline path.
+- `linear-close` - verify mainline evidence from a merged PR, direct issue-ID commit, or squash/import release evidence and close the Linear issue after review.
 - `linear-batch-refine` - list refinement/blocker queues and run `linear-refine` per issue.
 - `linear-batch-implement` - list ready issues, confirm bounded parallelism, and run isolated `linear-implement` subagents.
 - `linear-batch-close` - list review issues, confirm bounded parallelism, and run `linear-close` per issue.
@@ -114,6 +123,8 @@ Close a reviewed issue after a merged PR, direct issue-ID commit, or squash/impo
 ```text
 Use linear-close on HCL-123 after the PR is merged, an issue-ID commit is on main, or current main has the expected release file/content evidence with passing release/main checks.
 ```
+
+An open PR alone is not enough to complete a ticket. Closeout requires proof that the code is on the main branch, unless the issue itself explicitly defines another terminal path.
 
 ## Local Development
 

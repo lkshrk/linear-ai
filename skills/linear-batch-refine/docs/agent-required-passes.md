@@ -77,7 +77,9 @@ Every justification is documented in the Linear issue, not just held in working 
 
 After dispositioning, run another full round on the updated change set. Repeat until a round produces no new actionable finding (every finding is fixed or matches a recorded justification).
 
-Bound the loop. If rounds keep surfacing new actionable findings without converging (default cap: five rounds), stop looping and post a blocked status with the outstanding findings for human direction instead of looping forever or lowering the bar.
+The loop has a maximum of five review rounds. Do not exceed five review rounds in one implementation attempt unless the issue itself contains an explicit stricter or broader review-loop rule. If rounds keep surfacing new actionable findings without converging by the cap, stop looping and post a blocked status with the outstanding findings for human direction instead of looping forever or lowering the bar.
+
+After each review round, write a round summary in the Linear status comment or in `REQUIRED_LINEAR_MUTATIONS` when writes are unavailable. The round summary must include the round number, reviewers/lenses run, findings by severity, fixed findings, justified findings, deferred or blocked findings, verification rerun, and the next decision: continue another round, converged, or blocked at the cap.
 
 ### Self-Gates
 

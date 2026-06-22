@@ -44,6 +44,24 @@ test("all runnable agents load required passes", async () => {
   }
 });
 
+test("ticket reference rule requires issue title with ticket summaries", async () => {
+  const workflow = await readDoc("docs/workflow.md");
+  const batchClose = await readDoc("skills/linear-batch-close/SKILL.md");
+  const batchImplement = await readDoc("skills/linear-batch-implement/SKILL.md");
+
+  assert.match(workflow, /Ticket Reference Rule/);
+  assert.match(workflow, /issue ID/i);
+  assert.match(workflow, /exact issue title/i);
+  assert.match(workflow, /one-line description/i);
+  assert.match(workflow, /Do not mention a ticket by ID alone/i);
+
+  for (const source of [batchClose, batchImplement]) {
+    assert.match(source, /issue ID/i);
+    assert.match(source, /exact issue title/i);
+    assert.match(source, /one-line description/i);
+  }
+});
+
 test("questioner requires local grill pass before ready", async () => {
   const prompt = await readAgent("questioner");
 
@@ -128,6 +146,9 @@ test("implementer uses an isolated issue worktree as the primary workspace", asy
   for (const source of [implementerAgent, implementerDoc, implementSkill]) {
     assert.match(source, /issue worktree/i);
     assert.match(source, /isolated issue worktree/i);
+    assert.match(source, /<repo>\/\.worktrees\/<issue-id>-<optional suffix>/i);
+    assert.match(source, /never .*on branches.*main|never .*on main.*branches/is);
+    assert.doesNotMatch(source, /equivalent isolated/i);
     assert.match(source, /prove it is already inside the correct issue worktree/i);
     assert.match(source, /git ref/i);
   }
@@ -139,7 +160,9 @@ test("implementer enforces commit hygiene and asks explicit final destination", 
   const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
 
   for (const source of [implementerAgent, implementerDoc, implementSkill]) {
-    assert.match(source, /reasonable amount of commits/i);
+    assert.match(source, /reasonable amount of commits|minimal number of squashed commits/i);
+    assert.match(source, /minimal number of squashed commits/i);
+    assert.match(source, /rebase .*local main branch|local main branch.*rebase/is);
     assert.match(source, /semver/i);
     assert.match(source, /issue ID/i);
     assert.match(source, /main.*master|master.*main/is);
@@ -150,6 +173,25 @@ test("implementer enforces commit hygiene and asks explicit final destination", 
     assert.match(source, /feature_branch_pr/);
     assert.match(source, /do not infer/i);
     assert.match(source, /undecided/i);
+    assert.match(source, /ticket .*completed.*code.*main|code.*main.*ticket .*completed/is);
+    assert.match(source, /open PR .*not sufficient|not sufficient.*open PR/i);
+    assert.match(source, /explicit .*issue .*requirement|issue .*explicit .*requirement/i);
+  }
+});
+
+test("implementer bounds the review loop and summarizes every round", async () => {
+  const implementerAgent = await readAgent("implementer");
+  const implementerDoc = await readDoc("docs/implementer.md");
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+  const requiredPasses = await readDoc("docs/agent-required-passes.md");
+
+  for (const source of [implementerAgent, implementerDoc, implementSkill, requiredPasses]) {
+    assert.match(source, /maximum of five review rounds|five review rounds maximum/i);
+    assert.match(source, /round summary|summary after each (review )?round/i);
+    assert.match(source, /round number/i);
+    assert.match(source, /findings by severity/i);
+    assert.match(source, /fixed.*justified|justified.*fixed/is);
+    assert.match(source, /blocked status|block(ed)? status/i);
   }
 });
 
@@ -231,6 +273,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
     "linear-doctor",
     "linear-implement",
     "linear-refine",
+    "linear-repo-reconcile",
     "linear-review",
     "linear-status"
   ]);

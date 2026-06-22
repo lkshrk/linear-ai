@@ -81,7 +81,7 @@ None.
 ## Do Not Assume
 
 - Do not use a different issue worktree, Git ref, or PR title unless the human updates the plan.
-- Default branch merge, feature branch without PR, and feature branch with PR are final destination options, not the primary workspace where implementation happens.
+- Default integration is to the local main branch after rebasing and squashing to the minimal reviewable commits. Feature branch without PR and feature branch with PR are handoff exceptions only when the issue explicitly requires them; they are not the primary workspace where implementation happens.
 - Product behavior not stated in this comment must be clarified before implementation.
 
 ## REQUIRED_LINEAR_MUTATIONS

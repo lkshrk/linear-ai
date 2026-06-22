@@ -2,7 +2,7 @@
 
 ## Ticket Reference Rule
 
-Whenever an agent mentions a ticket that differs from the one it last spoke about, or switches focus to a different ticket, it must include a short content summary of that ticket. The summary names the issue ID and gives a one-line description of what the issue is about, so the human always has context for which ticket is in play. This applies to queue summaries, per-issue dispatch, continuation prompts, and final summaries.
+Whenever an agent mentions a ticket that differs from the one it last spoke about, or switches focus to a different ticket, it must include a short content summary of that ticket. The summary always names the issue ID, the exact issue title, and a one-line description of what the issue is about, so the human always has context for which ticket is in play. This applies to queue summaries, per-issue dispatch, continuation prompts, and final summaries. Do not mention a ticket by ID alone when switching focus.
 
 ## Claim Lock Rule
 
@@ -71,9 +71,9 @@ An interview is finished only when all material questions are answered or the hu
 1. Orchestrator finds an issue with `llm-ready`.
 2. Orchestrator reads the newest valid marked plan comment where `plan_status: ready`.
 3. Orchestrator removes all other `llm-*` states, adds `llm-active`, claims the issue with `in-use` per the Claim Lock Rule, and moves the issue to In Progress.
-4. Before changing code, implementer re-confirms no open questions remain (blocking with `llm-blocked` if any material question is unanswered) and decomposes the ready plan into independent parallel lanes, then works in an isolated issue worktree or equivalent isolated git worktree, handing disjoint lanes to parallel subagents.
-5. Implementer completes and verifies the ready plan in the issue worktree, runs the Mandatory Implementation Review Loop (parallel independent reviewers, fix-or-justify each finding with justifications documented in the issue, repeat to convergence, then confidence and test-gap self-gates), then asks the human whether the finished code should be merged to the default branch (`main` or `master`), left on a feature branch without PR, or put on a feature branch with PR.
-6. Implementer performs only the chosen destination action; it does not infer the destination from branch metadata, issue worktrees, draft PRs, or local convention.
+4. Before changing code, implementer re-confirms no open questions remain (blocking with `llm-blocked` if any material question is unanswered) and decomposes the ready plan into independent parallel lanes, then works in the issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>`, handing disjoint lanes to parallel subagents. Implementation never happens directly on a branch working tree, `main`, or `master`.
+5. Implementer completes and verifies the ready plan in the issue worktree, runs the Mandatory Implementation Review Loop (parallel independent reviewers, fix-or-justify each finding documented in per-round summaries, maximum five review rounds unless the issue explicitly sets a different cap, then confidence and test-gap self-gates), then follows the default integration path: rebase onto the local main branch, squash to the minimal number of reviewable commits, and integrate into the local main branch. Feature branch or PR handoff is allowed only when the issue itself explicitly requires it.
+6. Implementer treats a ticket as completed only when the code is in the main branch; an open PR is not sufficient. It does not infer exceptions from branch metadata, issue worktrees, draft PRs, or local convention.
 7. Implementer posts marked status comments with completed work, verification, placeholders, batched questions, and the chosen `final_destination`.
 8. If questions block further safe work, orchestrator removes all other `llm-*` states, adds `llm-blocked`, and releases the `in-use` claim.
 9. Questioner resumes refinement and writes a new plan revision.
