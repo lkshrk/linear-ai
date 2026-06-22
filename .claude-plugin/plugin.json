@@ -1,6 +1,6 @@
 {
   "name": "linear-ai",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Linear issue intake, refinement, implementation, and review workflow skills.",
   "skills": [
     "./skills/linear-batch-close",
