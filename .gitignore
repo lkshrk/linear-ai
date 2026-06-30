@@ -137,6 +137,7 @@ GEMINI.local.md
 .amp/
 .qodo/
 .agent-progress.md
+.worktrees/
 
 # Environment files
 .env
