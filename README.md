@@ -72,6 +72,47 @@ codex mcp add linear --url https://mcp.linear.app/mcp
 codex mcp login linear
 ```
 
+## Required Linear Setup
+
+Run `linear-doctor` against live Linear metadata before using the workflow in a new workspace. It verifies that agents can discover teams, projects, labels, statuses, and the mutations needed to keep issue state consistent.
+
+Required workflow labels:
+
+- `llm-refine` - issue needs clarification or planning.
+- `llm-ready` - issue has an accepted implementation plan.
+- `llm-active` - implementation is in progress.
+- `llm-blocked` - issue is blocked and needs user input or external change.
+- `llm-review` - implementation is ready for review or closeout evidence.
+- `llm-split` - issue is too large and must be split.
+- `in-use` - claim label used with the Linear-visible claim block to prevent duplicate active work and detect stale claims.
+
+Required Superpowers labels:
+
+- `sp-clarify`
+- `sp-plan`
+- `sp-implement`
+- `sp-review`
+- `sp-verify`
+
+Required planning labels and conventions:
+
+- Use a `bug` or `feature` type label, or the workspace's equivalent type labels, on normal work items.
+- Use an `EPIC` label for larger features or changes that span multiple systems.
+- An EPIC issue is a container with a title, description, out-of-scope section, references, and linked work-package issues.
+- Work-package issues carry the normal `llm-*` workflow label and reference their EPIC when they are part of one.
+- Exactly one `llm-*` workflow label should be active on an issue at a time. The `in-use` claim label may coexist with that workflow label while an agent owns the issue.
+
+Recommended status mapping:
+
+- `llm-refine` -> backlog, triage, or todo status.
+- `llm-ready` -> ready status.
+- `llm-active` -> in-progress status.
+- `llm-blocked` -> blocked status.
+- `llm-review` -> in-review status.
+- Done/complete status only after closeout evidence proves the code reached the required integration target.
+
+Target teams, projects, component labels, priorities, and milestone conventions are workspace-specific. Agents should read them from Linear metadata instead of hardcoding local names.
+
 ## Skills
 
 - `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.

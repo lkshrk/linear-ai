@@ -136,6 +136,7 @@ GEMINI.local.md
 .tabnine/
 .amp/
 .qodo/
+.agent-progress.md
 
 # Environment files
 .env

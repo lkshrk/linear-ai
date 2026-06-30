@@ -256,7 +256,11 @@ test("issue intake proposes matching Linear tags and asks whether to add more", 
 test("plugin exposes intuitive Linear workflow skills", async () => {
   const manifest = JSON.parse(await readDoc(".codex-plugin/plugin.json"));
   const claudeManifest = JSON.parse(await readDoc(".claude-plugin/plugin.json"));
-  const skillNames = (await readdir(path.join(ROOT, "skills"))).sort();
+  const skillEntries = await readdir(path.join(ROOT, "skills"), { withFileTypes: true });
+  const skillNames = skillEntries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
   const skillPaths = skillNames.map((skillName) => `./skills/${skillName}`);
 
   assert.equal(manifest.name, "linear-ai");
@@ -290,6 +294,19 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.match(combined, /linear-close/);
   assert.match(combined, /linear-status/);
   assert.match(combined, /review/i);
+});
+
+test("linear repo reconcile searches old sessions before asking", async () => {
+  const skill = await readDoc("skills/linear-repo-reconcile/SKILL.md");
+
+  assert.match(skill, /old session evidence/i);
+  assert.match(skill, /Codex, Claude, OMX, and context-mode/i);
+  assert.match(skill, /agent_instance_id/i);
+  assert.match(skill, /Linear-visible claim lease/i);
+  assert.match(skill, /Do not ask the user which agent to check first/i);
+  assert.match(skill, /Infer likely agent\/session sources/i);
+  assert.match(skill, /Ask the user.*only when/i);
+  assert.match(skill, /untrusted historical data/i);
 });
 
 test("batch workflow skills orchestrate single-issue skills", async () => {
