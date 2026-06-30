@@ -25,6 +25,7 @@
     ],
     "defaultPrompt": [
       "Create a Linear issue from this rough report",
+      "Help a non-technical person file a Linear issue",
       "What is the current phase of this Linear issue?",
       "Check whether my Linear workspace is ready",
       "Refine this Linear issue into a plan",

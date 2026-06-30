@@ -276,6 +276,7 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
     "linear-deliver-feature",
     "linear-doctor",
     "linear-implement",
+    "linear-nontech-intake",
     "linear-refine",
     "linear-repo-reconcile",
     "linear-review",
@@ -294,6 +295,34 @@ test("plugin exposes intuitive Linear workflow skills", async () => {
   assert.match(combined, /linear-close/);
   assert.match(combined, /linear-status/);
   assert.match(combined, /review/i);
+});
+
+test("linear nontechnical intake creates marked refine issues", async () => {
+  const skill = await readDoc("skills/linear-nontech-intake/SKILL.md");
+  const metadata = await readDoc("skills/linear-nontech-intake/agents/openai.yaml");
+
+  assert.match(skill, /name: linear-nontech-intake/);
+  assert.match(skill, /non-technical people/i);
+  assert.match(skill, /one plain-language question at a time/i);
+  assert.match(skill, /screenshots, screen recordings, error messages, links/i);
+  assert.match(skill, /list_teams[\s\S]*list_projects[\s\S]*list_issue_labels[\s\S]*save_issue/i);
+  assert.match(skill, /llm-refine/);
+  assert.match(skill, /nontechnical-intake/);
+  assert.match(skill, /Technical triage gaps/);
+  assert.match(skill, /affected system or code area/i);
+  assert.match(skill, /root cause/i);
+  assert.match(skill, /implementation approach/i);
+  assert.match(skill, /test strategy/i);
+  assert.match(skill, /metadata results are unavailable/i);
+  assert.match(skill, /Do not invent team, project, status, or labels/i);
+  assert.match(skill, /copyable draft issue body/i);
+  assert.match(skill, /needs Linear metadata/i);
+  assert.match(skill, /REQUIRED_LINEAR_MUTATIONS/);
+
+  assert.match(metadata, /display_name:/);
+  assert.match(metadata, /short_description:/);
+  assert.match(metadata, /default_prompt:/);
+  assert.match(metadata, /non-technical/i);
 });
 
 test("linear repo reconcile searches old sessions before asking", async () => {
@@ -466,6 +495,17 @@ test("linear refine starts a real questionnaire when ambiguity remains", async (
     assert.match(source, /wait.*response/i);
     assert.match(source, /no questionnaire was needed/i);
   }
+});
+
+test("linear refine translates nontechnical intake before planning", async () => {
+  const skill = await readDoc("skills/linear-refine/SKILL.md");
+
+  assert.match(skill, /nontechnical-intake/);
+  assert.match(skill, /preserve the original plain-language report/i);
+  assert.match(skill, /Technical triage gaps/);
+  assert.match(skill, /affected systems/i);
+  assert.match(skill, /testable acceptance criteria/i);
+  assert.match(skill, /remove `nontechnical-intake`/i);
 });
 
 test("workflow skills define step completion handoff instead of stopping silently", async () => {

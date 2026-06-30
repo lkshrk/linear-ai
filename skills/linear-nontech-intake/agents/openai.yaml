@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Non-Tech Intake"
+  short_description: "Interview a non-technical user and create a Linear issue marked for refinement."
+  default_prompt: "Use $linear-nontech-intake to help a non-technical person file a Linear issue from their plain-language report."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for teams, projects, labels, and issue writes."
+policy:
+  allow_implicit_invocation: true

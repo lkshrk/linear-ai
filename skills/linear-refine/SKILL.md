@@ -30,6 +30,22 @@ If material ambiguity remains after source evidence is exhausted, start a real q
 
 Do not mark `plan_status: ready` until the questionnaire evidence shows that every material ambiguity was either answered or explicitly accepted as unknown.
 
+## Non-Technical Intake Handoff
+
+If the issue carries `nontechnical-intake`, treat it as a plain-language intake that requires technical translation before planning.
+
+Before writing a ready plan:
+
+- Preserve the original plain-language report.
+- Read the `Technical triage gaps` section.
+- Identify affected systems from the issue, comments, linked docs, Linear context, and repository evidence.
+- Convert desired success into testable acceptance criteria.
+- Replace or complete `Technical triage gaps` with technical findings.
+- Keep unknowns explicit when they cannot be resolved from available evidence.
+- Do not mark `plan_status: ready` until the remaining unknowns are either resolved or explicitly accepted.
+
+When technical triage is complete, remove `nontechnical-intake` with `save_issue` while applying the normal refinement label transition. If Linear writes are unavailable, include removal of `nontechnical-intake` in `REQUIRED_LINEAR_MUTATIONS`.
+
 ## Grill Continuation
 
 Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.

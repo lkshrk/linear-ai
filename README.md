@@ -116,6 +116,7 @@ Target teams, projects, component labels, priorities, and milestone conventions 
 ## Skills
 
 - `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.
+- `linear-nontech-intake` - interview a non-technical user and create a Linear issue marked for technical refinement.
 - `linear-refine` - interview, clarify, and write a ready implementation plan.
 - `linear-implement` - execute a ready plan in an issue worktree, update progress, run bounded review rounds, and integrate through the mainline path.
 - `linear-close` - verify mainline evidence from a merged PR, direct issue-ID commit, or squash/import release evidence and close the Linear issue after review.
