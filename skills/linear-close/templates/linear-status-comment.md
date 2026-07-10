@@ -43,7 +43,6 @@ recommended_labels_to_remove:
   - llm-ready
   - llm-active
   - llm-review
-  - llm-split
 recommended_status: Blocked
 commits:
   - subject: "fix(TEAM-123): handle blocked workflow state"
@@ -101,7 +100,7 @@ Add `llm-blocked` and keep PR draft.
 
 - issue: TEAM-123
 - add_labels: [`llm-blocked`]
-- remove_labels: [`llm-refine`, `llm-ready`, `llm-active`, `llm-review`, `llm-split`]
+- remove_labels: [`llm-refine`, `llm-ready`, `llm-active`, `llm-review`]
 - status: Blocked
 - comment: status
 - pr_action: draft

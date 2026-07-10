@@ -101,9 +101,10 @@ Exactly one `llm-*` workflow state label may be present on an issue at a time:
 - `llm-active`
 - `llm-blocked`
 - `llm-review`
-- `llm-split`
 
 Whenever an agent adds one of these labels, it must remove every other `llm-*` workflow state label in the same finalization pass. Product/component labels such as `Bug`, `Feature`, `API`, or `Web` are independent and may coexist.
+
+When the issue is a sub-issue, the same finalization pass applies the parent rollup from the Parent and Sub-Issue Rule in `docs/workflow.md`: update the parent's `llm-*` state and status to reflect the aggregate sub-issue state, and when the last open sub-issue reaches Done, run the parent review gate. If Linear writes are unavailable, include the parent mutations in `REQUIRED_LINEAR_MUTATIONS`.
 
 If Linear MCP write tools are available, apply the exact state changes after producing the marked comment or issue draft. If a write fails, report the failed write and emit `REQUIRED_LINEAR_MUTATIONS`.
 
@@ -125,7 +126,7 @@ When intake produces a clean issue draft:
 
 - apply or emit product label `Bug` or `Feature` when classification is clear
 - apply or emit `llm-refine` when implementation planning is needed
-- when applying `llm-refine`, remove `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
+- when applying `llm-refine`, remove `llm-ready`, `llm-active`, `llm-blocked`, and `llm-review`
 - never apply `llm-ready`
 - leave status in Backlog/Todo unless the human supplied another target status
 
@@ -135,14 +136,14 @@ When the questioner produces a valid ready plan:
 
 - create or update the marked plan comment
 - add `llm-ready`
-- remove `llm-refine`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove `llm-refine`, `llm-active`, `llm-blocked`, and `llm-review`
 - move status to Todo/Ready when that status exists; otherwise leave the current status unchanged
 
 When the plan is still blocked or draft:
 
 - create or update the marked plan comment
 - add `llm-refine`
-- remove `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove `llm-ready`, `llm-active`, `llm-blocked`, and `llm-review`
 - do not add `llm-ready`
 
 ## Implementer State
@@ -150,26 +151,26 @@ When the plan is still blocked or draft:
 When implementation starts from a ready plan:
 
 - add `llm-active`
-- remove `llm-refine`, `llm-ready`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-blocked`, and `llm-review`
 - move status to In Progress
 
 When blocked by questions:
 
 - add `llm-blocked`
-- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-review`, and `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-active`, and `llm-review`
 - create the marked status comment with batched questions
 - do not add `llm-review`
 
 When blockers are resolved and implementation can resume:
 
 - add `llm-active`
-- remove `llm-refine`, `llm-ready`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-blocked`, and `llm-review`
 
 When implementation is review-ready:
 
 - create the marked status comment
 - add `llm-review`
-- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, and `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-active`, and `llm-blocked`
 - move status to In Review
 - mark the draft PR ready only when tests/checks and placeholders satisfy the implementer contract
 

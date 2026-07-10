@@ -36,7 +36,6 @@ Report missing `llm-*` workflow labels:
 - `llm-active`
 - `llm-blocked`
 - `llm-review`
-- `llm-split`
 
 Report the missing claim lock label (outside the `llm-*` state machine):
 

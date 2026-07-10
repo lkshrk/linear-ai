@@ -83,7 +83,6 @@ Required workflow labels:
 - `llm-active` - implementation is in progress.
 - `llm-blocked` - issue is blocked and needs user input or external change.
 - `llm-review` - implementation is ready for review or closeout evidence.
-- `llm-split` - issue is too large and must be split.
 - `in-use` - claim label used with the Linear-visible claim block to prevent duplicate active work and detect stale claims.
 
 Required Superpowers labels:

@@ -17,7 +17,6 @@
     { "name": "Improvement", "parent": "Type" },
     { "name": "Feature", "parent": "Type" },
     { "name": "Bug", "parent": "Type" },
-    { "name": "llm-split", "parent": "LLM" },
     { "name": "llm-review", "parent": "LLM" },
     { "name": "llm-blocked", "parent": "LLM" },
     { "name": "llm-active", "parent": "LLM" },

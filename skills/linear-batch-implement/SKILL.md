@@ -26,6 +26,8 @@ Use Linear MCP:
 
 - `list_issues` to find issues with `llm-ready`.
 - Optional filters: team, project, assignee, label, and explicit issue IDs when supplied by the user.
+- If no explicit issue IDs are supplied and the target team and project are not already clear from the session, ask which team and project to handle issues for before discovery.
+- Only issues carrying an `llm-*` workflow label enter the queue. Ignore issues without an `llm-*` label unless the user explicitly names them.
 - `get_issue` and `list_comments` to verify each candidate has a newest valid ready plan with `plan_status: ready`.
 
 Exclude issues already carrying the `in-use` claim label; another agent is working them.

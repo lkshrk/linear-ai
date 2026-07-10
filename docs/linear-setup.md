@@ -19,7 +19,6 @@ Create these AI workflow labels:
 - `llm-active`
 - `llm-blocked`
 - `llm-review`
-- `llm-split`
 
 Create this claim lock label (outside the `llm-*` state machine):
 

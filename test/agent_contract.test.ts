@@ -691,3 +691,66 @@ test("skills and install docs are JavaScript runner agnostic", async () => {
     assert.match(doc, /detect_runner\.ts|package manager|npm|pnpm|bun/i, `${docPath} should mention runner portability`);
   }
 });
+
+test("workflow scope rule ignores unlabeled issues and asks for team and project", async () => {
+  const workflow = await readDoc("docs/workflow.md");
+  assert.match(workflow, /## Workflow Scope Rule/);
+  assert.match(workflow, /without any `llm-\*` workflow state label are outside the AI workflow/);
+  assert.match(workflow, /explicitly names it/i);
+  assert.match(workflow, /asks the human which team and project/i);
+
+  for (const skillName of ["linear-batch-refine", "linear-batch-implement", "linear-batch-close"]) {
+    const skill = await readDoc(path.join("skills", skillName, "SKILL.md"));
+    assert.match(skill, /Ignore issues without an `llm-\*` label unless the user explicitly names them/, `${skillName} must skip unlabeled issues`);
+    assert.match(skill, /ask which team and project to handle issues for before discovery/, `${skillName} must ask for team and project`);
+  }
+
+  const review = await readDoc("skills/linear-review/SKILL.md");
+  assert.match(review, /ask which team and project to create them in/i);
+});
+
+test("parent and sub-issue rule rolls up state and gates parent closeout", async () => {
+  const workflow = await readDoc("docs/workflow.md");
+  assert.match(workflow, /## Parent and Sub-Issue Rule/);
+  assert.match(workflow, /any sub-issue is `llm-active` -> parent gets `llm-active` and moves to In Progress/);
+  assert.match(workflow, /at least one is `llm-blocked` -> parent gets `llm-blocked`/);
+  assert.match(workflow, /all sub-issues are Done -> parent enters the parent review gate/);
+  assert.match(workflow, /never takes an `in-use` claim on the parent/i);
+  assert.match(workflow, /aggregated sub-issue closeout evidence/);
+  assert.match(workflow, /gaps remain -> keep the parent open, apply `llm-refine`/);
+  assert.match(workflow, /child issues are created as Linear sub-issues of the parent/);
+
+  const passes = await readDoc("docs/agent-required-passes.md");
+  assert.match(passes, /applies the parent rollup from the Parent and Sub-Issue Rule/);
+  assert.match(passes, /include the parent mutations in `REQUIRED_LINEAR_MUTATIONS`/);
+
+  const implementSkill = await readDoc("skills/linear-implement/SKILL.md");
+  assert.match(implementSkill, /Parent and Sub-Issue Rule/);
+  assert.match(implementSkill, /move the parent to `llm-active` and In Progress/);
+
+  const closeSkill = await readDoc("skills/linear-close/SKILL.md");
+  assert.match(closeSkill, /last open sub-issue.*parent review gate/s);
+  assert.match(closeSkill, /every sub-issue is Done with verified closeout evidence/);
+  assert.match(closeSkill, /each sub-issue's verified CI evidence/);
+});
+
+test("llm-split label is retired everywhere", async () => {
+  const sources = [
+    "README.md",
+    "docs/workflow.md",
+    "docs/agent-required-passes.md",
+    "docs/linear-setup.md",
+    "docs/setup-checklist.md",
+    "templates/linear-plan-comment.md",
+    "templates/linear-status-comment.md",
+    "scripts/linear_metadata.ts",
+    "scripts/validate_marked_comments.ts",
+    "examples/linear-metadata.json"
+  ];
+  for (const entry of await readdir(path.join(ROOT, "skills"), { withFileTypes: true })) {
+    if (entry.isDirectory()) sources.push(path.join("skills", entry.name, "SKILL.md"));
+  }
+  for (const source of sources) {
+    assert.doesNotMatch(await readDoc(source), /llm-split/, `${source} must not reference llm-split`);
+  }
+});

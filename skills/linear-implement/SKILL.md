@@ -111,6 +111,8 @@ Use these Linear MCP tools when available:
 - `save_comment` - post marked implementation status, questions, blockers, and review-ready evidence.
 - `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, add the `in-use` claim on start and remove it on stop, update issue description dashboard, and update status when writes are available.
 
+When the issue is a sub-issue, apply the Parent and Sub-Issue Rule from `docs/workflow.md` in the same finalization pass: on `llm-active` move the parent to `llm-active` and In Progress; on `llm-blocked` roll the parent state up per the rule. Never take an `in-use` claim on the parent.
+
 Validate status comments and the issue description dashboard with:
 
 ```sh

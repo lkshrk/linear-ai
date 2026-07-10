@@ -95,8 +95,9 @@ Before moving the issue to `Done`, prove all of the following:
 - or direct commit evidence contains the issue ID
 - or, for a cross-team moved issue, PR commit evidence or direct commit evidence contains the old implemented issue ID and the current issue ID has a different team prefix
 - or squash/import release evidence proves the expected file paths and content are present on current main
-- mainline contains the merge commit, the direct issue-ID commit, equivalent remote mainline evidence, or the expected release file/content evidence
-- CI is complete and successful for the merged PR, merge commit, direct issue-ID commit, or release/main evidence
+- or, for a parent tracking issue, every sub-issue is Done with verified closeout evidence and the parent review gate confirmed the parent's requirements are covered
+- mainline contains the merge commit, the direct issue-ID commit, equivalent remote mainline evidence, the expected release file/content evidence, or (for a parent tracking issue) the sub-issues' verified mainline evidence
+- CI is complete and successful for the merged PR, merge commit, direct issue-ID commit, or release/main evidence; for a parent tracking issue this is satisfied by each sub-issue's verified CI evidence
 - final dashboard/status evidence does not contradict closeout
 - all `llm-*` workflow state labels and the `in-use` claim label will be removed
 - cumulative `sp-*` labels will be preserved
@@ -110,11 +111,13 @@ Successful closeout must:
 - update the marked dashboard block in the issue description when present
 - post one final immutable marked status/closeout comment, including both IDs when closeout used an old implemented issue ID after a team move, or the verified file/content and release/main CI evidence when closeout used squash/import release evidence
 - move Linear status to `Done` (a no-op when a closing magic word already moved it there)
-- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, and `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, and `llm-review`
 - remove the `in-use` claim label
 - preserve cumulative `sp-*` labels such as `sp-clarify`, `sp-plan`, `sp-tdd`, `sp-implement`, `sp-verify`, and `sp-review`
 
-If Linear MCP write tools are unavailable, do not claim labels, status, dashboard, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact issue description, final closeout comment, labels, and status changes.
+When the closed issue is a sub-issue, apply the Parent and Sub-Issue Rule from `docs/workflow.md` in the same finalization pass. If open sub-issues remain, roll the parent's `llm-*` state and status up from the remaining siblings. If this was the last open sub-issue, run the parent review gate: verify the parent's requirements and acceptance criteria are fully covered by the merged sub-issue work; if covered, move the parent to `llm-review` and In Review for its own closeout, and if gaps remain, apply `llm-refine` to the parent and record the gaps.
+
+If Linear MCP write tools are unavailable, do not claim labels, status, dashboard, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact issue description, final closeout comment, labels, and status changes, including any parent rollup mutations.
 
 ## Step Completion Handoff
 

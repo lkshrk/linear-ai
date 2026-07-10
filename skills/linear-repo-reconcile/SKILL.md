@@ -470,7 +470,7 @@ Update:
 `main_equivalent` + `should_be_done`:
 
 - move issue to Done
-- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`
 - remove `in-use`
 - preserve `sp-*`
 - post closeout/reconciliation evidence
@@ -479,7 +479,7 @@ Update:
 
 - set issue to In Review or team equivalent
 - apply `llm-review`
-- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-split`
+- remove `llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`
 - remove stale `in-use` unless actively claimed by this run
 - record PR/branch/verification evidence
 
@@ -552,7 +552,7 @@ If the skill cannot write to Linear, emit:
 - issue: TEAM-123
 - status: Done
 - add_labels: []
-- remove_labels: [`llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, `llm-split`, `in-use`]
+- remove_labels: [`llm-refine`, `llm-ready`, `llm-active`, `llm-blocked`, `llm-review`, `in-use`]
 - description_update: ...
 - comment: ...
 ```

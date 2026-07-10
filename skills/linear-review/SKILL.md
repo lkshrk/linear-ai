@@ -34,7 +34,7 @@ Fingerprint every finding per `docs/reviewer.md`. Drop findings whose fingerprin
 
 ## Triage And Tickets
 
-Present survivors in the chosen triage mode, grouped by severity with the confidence-aware defaults in `docs/reviewer.md`. Create a Linear issue for each chosen finding through `linear-create-issue` conventions: apply `bug` for bug, security, and silent-failure findings and the feature template otherwise, add `llm-refine`, append the `linear-ai:review-finding` footer, and record the fingerprint to the ledger as `ticketed` with the issue id. Write `ignored` ledger entries only for findings the user explicitly ignores. Deferred findings are not written.
+Present survivors in the chosen triage mode, grouped by severity with the confidence-aware defaults in `docs/reviewer.md`. If the target team and project for new tickets are not already clear from the session, ask which team and project to create them in before ticketing. Create a Linear issue for each chosen finding through `linear-create-issue` conventions: apply `bug` for bug, security, and silent-failure findings and the feature template otherwise, add `llm-refine`, append the `linear-ai:review-finding` footer, and record the fingerprint to the ledger as `ticketed` with the issue id. Write `ignored` ledger entries only for findings the user explicitly ignores. Deferred findings are not written.
 
 ## Claim Lock
 

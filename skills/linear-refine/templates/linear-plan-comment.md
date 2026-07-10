@@ -22,7 +22,6 @@ labels_to_remove:
   - llm-active
   - llm-blocked
   - llm-review
-  - llm-split
 split_recommendation:
   recommended: false
   reason: null
@@ -88,7 +87,7 @@ None.
 
 - issue: TEAM-123
 - add_labels: [`llm-ready`]
-- remove_labels: [`llm-refine`, `llm-active`, `llm-blocked`, `llm-review`, `llm-split`]
+- remove_labels: [`llm-refine`, `llm-active`, `llm-blocked`, `llm-review`]
 - status: Todo
 - comment: plan
 - pr_action: none

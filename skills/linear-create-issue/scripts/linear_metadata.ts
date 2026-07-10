@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 class MetadataError extends Error {}
 
 const REQUIRED_TYPE_LABELS = ["Bug", "Feature", "Improvement"];
-const REQUIRED_LLM_LABELS = ["llm-active", "llm-blocked", "llm-ready", "llm-refine", "llm-review", "llm-split"];
+const REQUIRED_LLM_LABELS = ["llm-active", "llm-blocked", "llm-ready", "llm-refine", "llm-review"];
 
 type LinearTeam = {
   name?: unknown;

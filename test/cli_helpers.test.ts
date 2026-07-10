@@ -1831,7 +1831,7 @@ test("linear metadata helper captures raw Linear MCP list results", async () => 
       { name: "llm-ready", parent: "LLM" }
     ]);
     assert.match(result.stderr, /warning: missing Type labels: Improvement/);
-    assert.match(result.stderr, /warning: missing LLM labels: llm-active, llm-blocked, llm-review, llm-split/);
+    assert.match(result.stderr, /warning: missing LLM labels: llm-active, llm-blocked, llm-review/);
   } finally {
     await rm(teams.dir, { recursive: true, force: true });
     await rm(projects.dir, { recursive: true, force: true });

@@ -27,9 +27,14 @@ Exactly one `llm-*` workflow state label may be present on an issue at a time. A
 - `llm-active` - implementation agent is actively working.
 - `llm-blocked` - implementation is blocked by questions or missing authority.
 - `llm-review` - implementation is ready for human review.
-- `llm-split` - issue was split into sub-issues.
 - `in-use` - claim lock: an agent is currently working this issue. Not an `llm-*` workflow state; coexists with the state label.
 - Closed issues have no `llm-*` workflow state label.
+
+## Workflow Scope Rule
+
+Issues without any `llm-*` workflow state label are outside the AI workflow. Discovery, queue building, and batch dispatch must ignore them. An agent acts on an unlabeled issue only when the human explicitly names it (issue ID or link) or explicitly asks to include unlabeled issues.
+
+When a skill runs without an explicit issue ID and the target team and project are not already established in the session or otherwise unambiguous, it asks the human which team and project to handle issues for before discovering or dispatching issues.
 
 ## Status Mapping
 
@@ -126,12 +131,29 @@ The orchestrator may recommend splitting when an issue spans multiple repositori
 When split is approved:
 
 - original issue becomes the parent tracking issue
-- parent receives `llm-split`
+- child issues are created as Linear sub-issues of the parent
 - child issues receive compact marked plan comments
 - ready children receive `llm-ready`
 - unclear children receive `llm-refine`
+- the parent carries no dedicated split label; its `llm-*` state follows the Parent and Sub-Issue Rule
 
 Prefer one child issue per meaningful repo-owned deliverable. For tiny mechanical cross-repo changes, one issue with multiple PRs is acceptable.
+
+## Parent and Sub-Issue Rule
+
+A parent issue's `llm-*` state and Linear status reflect the aggregate state of its sub-issues. Any agent that changes a sub-issue's `llm-*` state must apply this rollup to the parent in the same finalization pass:
+
+- any sub-issue is `llm-active` -> parent gets `llm-active` and moves to In Progress.
+- no sub-issue is `llm-active` and at least one is `llm-blocked` -> parent gets `llm-blocked`.
+- all sub-issues are Done -> parent enters the parent review gate below.
+- otherwise the parent keeps its current state.
+
+The rollup changes only the parent's `llm-*` state label and status. It never takes an `in-use` claim on the parent and never edits the parent's plan comments.
+
+When the last open sub-issue reaches Done, the closing agent runs a parent review: verify the parent's own requirements and acceptance criteria are fully covered by the merged sub-issue work.
+
+- fully covered -> remove all other `llm-*` states from the parent, add `llm-review`, move the parent to In Review, and hand off to `linear-close`, which closes the parent against the aggregated sub-issue closeout evidence.
+- gaps remain -> keep the parent open, apply `llm-refine` to it, and record the gaps as new sub-issues or open questions so refinement can plan the remaining work.
 
 ## Repository Boundaries
 
