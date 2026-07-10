@@ -26,9 +26,15 @@ When claiming, also write the `linear-ai:claim` block to the issue description (
 
 Before writing a ready plan, decide from source evidence whether a questionnaire is needed. Source evidence includes the issue, comments, linked docs, and codebase inspection. If no material ambiguity remains, record that no questionnaire was needed and continue to the ready plan.
 
+Material ambiguity = any branch where product behavior, UX, scope, or data semantics could plausibly vary between reasonable options. Fix-design choices with more than one plausible option are always material, even when code evidence favors one — present the evidence with the recommended answer rather than deciding. Only purely mechanical choices (naming, file placement, replicating an identical existing pattern) may be decided without asking; record the rejected alternatives in `do_not_assume`.
+
 If material ambiguity remains after source evidence is exhausted, start a real questionnaire/interview path instead of relying on copied grill prose. Use `grill-me` or `grill-with-docs` when available, but do not require those skills to be installed. If they are unavailable, run the fallback directly: ask exactly one concrete question, include your recommended answer, wait for the user's response, then update the plan draft before asking the next question.
 
 Do not mark `plan_status: ready` until the questionnaire evidence shows that every material ambiguity was either answered or explicitly accepted as unknown.
+
+## Subagent Relay Mode
+
+When running as a batch subagent without a direct human channel, the interview requirement is not waived. Send each question round to the dispatching orchestrator and wait for relayed answers, keeping the `in-use` claim while paused. Never set `plan_status: ready` while a material question is unanswered and not explicitly accepted by the operator.
 
 ## Non-Technical Intake Handoff
 

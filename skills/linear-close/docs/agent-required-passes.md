@@ -24,6 +24,10 @@ Use this pass before any questioner marks a plan `ready`.
 
 Do not set `plan_status: ready` while any unresolved question remains unless the same item is listed in `accepted_unknowns` and protected by `do_not_assume`.
 
+Material ambiguity = any branch where product behavior, UX, scope, or data semantics could plausibly vary between reasonable options. Fix-design choices with more than one plausible option are always material, even when code evidence favors one — present the evidence with the recommended answer rather than deciding. Only purely mechanical choices (naming, file placement, replicating an identical existing pattern) may be decided without asking; record the rejected alternatives in `do_not_assume`.
+
+In batch/subagent mode, questions route through the orchestrator relay — do not downgrade them to autonomous decisions.
+
 ## Mandatory Implementation Review Loop
 
 Run this loop when implementation looks complete and local verification passes, before the Final Destination Gate and before applying `llm-review`. It is part of finishing implementation, not an optional extra.

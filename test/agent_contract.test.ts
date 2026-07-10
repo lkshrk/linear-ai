@@ -345,8 +345,11 @@ test("batch workflow skills orchestrate single-issue skills", async () => {
       "llm-blocked",
       "linear-refine",
       "one issue at a time",
-      "full queue pass",
-      "grouped questions"
+      "interview contract",
+      "question rounds",
+      "question_round",
+      "still-running subagent",
+      "operator-deferred"
     ],
     "linear-batch-implement": [
       "llm-ready",
@@ -495,6 +498,30 @@ test("linear refine starts a real questionnaire when ambiguity remains", async (
     assert.match(source, /wait.*response/i);
     assert.match(source, /no questionnaire was needed/i);
   }
+});
+
+test("linear refine keeps interview bar in batch relay mode", async () => {
+  const refineSkill = await readDoc("skills/linear-refine/SKILL.md");
+  const passesDoc = await readDoc("docs/agent-required-passes.md");
+  const batchSkill = await readDoc("skills/linear-batch-refine/SKILL.md");
+
+  for (const source of [refineSkill, passesDoc]) {
+    assert.match(source, /Material ambiguity =/);
+    assert.match(source, /always material/i);
+    assert.match(source, /purely mechanical/i);
+    assert.match(source, /do_not_assume/);
+  }
+
+  assert.match(refineSkill, /Subagent Relay Mode/);
+  assert.match(refineSkill, /interview requirement is not waived/i);
+  assert.match(refineSkill, /keeping the `in-use` claim while paused/);
+  assert.match(passesDoc, /orchestrator relay/i);
+  assert.match(passesDoc, /do not downgrade/i);
+
+  assert.match(batchSkill, /type: question_round/);
+  assert.match(batchSkill, /must not instruct subagents to skip the questionnaire/i);
+  assert.match(batchSkill, /fallback for operator-deferred questions/i);
+  assert.match(batchSkill, /keeps its `in-use` claim/);
 });
 
 test("linear refine translates nontechnical intake before planning", async () => {

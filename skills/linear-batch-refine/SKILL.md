@@ -35,7 +35,7 @@ Support explicit dry-run or list-only mode. In dry-run/list-only mode, show the 
 
 Sort the queue by Linear priority first, then oldest-updated issue first. Priority order is Urgent, High, Medium, Low, then No priority/none; within the same priority, sort by `updatedAt` ascending. Show a scoped queue summary with issue ID, title, state label, status, project, updated time, and why the issue is eligible.
 
-Ask for confirmation before dispatch. Process refinement one issue at a time. Complete a full queue pass before asking grouped questions.
+Ask for confirmation before dispatch. Process refinement one issue at a time. Refinement keeps the single `linear-refine` interview contract: while an issue is being refined, the orchestrator relays the subagent's question rounds to the operator as they arise (grouped ≤4 per round, each question carrying the subagent's recommended answer and evidence), returns the operator's answers to the still-running subagent, and lets it iterate until every material branch is resolved or explicitly accepted. Only then may the plan be marked ready. Advance to the next queue issue only when the current issue is ready, blocked, or the operator explicitly defers its open questions. End-of-pass aggregation applies only to operator-deferred questions.
 
 When switching focus to a different issue, give a short content summary first per the Ticket Reference Rule in `docs/workflow.md`: name the issue ID and a one-line description of what it is about.
 
@@ -49,11 +49,28 @@ Dispatch a per-issue subagent with:
 $linear-ai:linear-refine <ISSUE-ID>
 ```
 
+Dispatch prompts must not instruct subagents to skip the questionnaire or resolve design branches autonomously. They must instead define the relay channel: the subagent sends question rounds to the orchestrator mid-run and waits for relayed operator answers before finalizing the plan. While waiting, the subagent keeps its `in-use` claim.
+
 Retry one tool/runtime failure once for the affected issue. If the retry fails, mark only that issue as `failed` in the batch summary.
 
 Handle cancellation by stopping new dispatches, waiting for already-started safe work to report, and returning a cancellation summary with completed, blocked, failed, skipped, cancelled, and not-started issues.
 
 ## Structured Subagent Result
+
+While refining, a subagent sends intermediate question rounds to the orchestrator before its final result:
+
+```yaml
+type: question_round
+issue: TEAM-123
+round: 1
+questions:
+  - question: Concrete question for the operator.
+    recommended_answer: Evidence-based recommendation.
+    reason: Why this branch is material.
+    blocks: [I2]
+```
+
+The orchestrator relays each round to the operator and returns the answers to the still-running subagent. The final structured result is sent only after all rounds are answered or explicitly deferred by the operator.
 
 Require every subagent to report a structured subagent result:
 
@@ -80,13 +97,15 @@ error: null
 
 Contract violations fail only the affected issue.
 
-## Question And Feedback Aggregation
+## Deferred Question And Feedback Aggregation
+
+Aggregation is the fallback for operator-deferred questions, not the primary flow. The primary flow is the live relay above: question rounds reach the operator while the subagent is still running.
 
 Questions include `question`, `recommended_answer`, `reason`, and optional `blocks`.
 
 Feedback includes `summary`, `severity`, `recommendation`, and optional `follow_up`.
 
-After the full queue pass, group open questions and feedback by issue. Ask the user for required input before continuing blocked or ambiguous work. Route answered issues into fresh `linear-refine` subagent runs; do not resume stale subagent state.
+After the full queue pass, group operator-deferred questions and feedback by issue. Ask the user for required input before continuing blocked or ambiguous work. Route answered issues into fresh `linear-refine` subagent runs; do not resume stale subagent state.
 
 Unanswered issues remain blocked or skipped in the next summary.
 
