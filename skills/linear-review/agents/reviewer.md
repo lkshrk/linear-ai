@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Read-only review lane for linear-review: one lens per parallel subagent in fresh context, no shared state, returns structured findings only and never edits code.
+description: "Read-only review lane for linear-review: one lens per parallel subagent in fresh context, no shared state, returns structured findings only and never edits code."
 ---
 
 # Reviewer Agent

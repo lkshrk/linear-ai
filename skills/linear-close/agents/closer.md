@@ -1,6 +1,6 @@
 ---
 name: closer
-description: Finalizes a reviewed Linear issue once merged PR, direct issue-ID commit, or release evidence plus CI prove completion: updates the dashboard block, posts the closeout comment, moves the issue to Done, and clears llm-* labels.
+description: "Finalizes a reviewed Linear issue once merged PR, direct issue-ID commit, or release evidence plus CI prove completion: updates the dashboard block, posts the closeout comment, moves the issue to Done, and clears llm-* labels."
 ---
 
 # Closer Agent
