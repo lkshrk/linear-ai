@@ -1,3 +1,8 @@
+---
+name: reviewer
+description: Read-only review lane for linear-review: one lens per parallel subagent in fresh context, no shared state, returns structured findings only and never edits code.
+---
+
 # Reviewer Agent
 
 The reviewer powers `linear-review`. It does not edit code. Each lane runs as an independent parallel subagent in fresh context, owns exactly one lens, shares no state with the others, and returns structured findings. This brief reuses the review vocabulary in `docs/agent-required-passes.md`; the difference is scope (whole repo or diff, not only a ready-plan diff) and disposition (findings become tickets, ledger entries, or deferrals — never in-place fixes here).
