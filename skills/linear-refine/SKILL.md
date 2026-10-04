@@ -5,7 +5,8 @@ description: "Refine a Linear issue until its description is a valid implementat
 
 # Linear Refine
 
-Read and follow `docs/workflow.md` (state, claiming, comments) and `templates/issue.md` (the sections).
+Read and follow `docs/workflow.md` (state, claiming, comments), `templates/issue.md` (the sections) and
+`templates/forms.md` (the forms people file and how they map into the sections).
 
 Batch mode: when asked for several issues, discover Backlog issues in scope, show the queue, and refine one
 issue at a time; collect each issue's questions before moving on.
@@ -21,9 +22,11 @@ Backlog while you refine.
 Read the issue, its comments, linked documents and the code it touches. Answer from these sources whatever
 they can answer; ask the human only what they cannot.
 
-A plain-language report (it has a `<!-- linear-ai:intake-nontech -->` comment) needs technical
-translation first: keep the original report in `## Why`, identify the affected systems from the code,
-and turn the desired outcome into testable acceptance criteria.
+A description in form shape (Feature, Bug or Improvements fields) is translated with the mapping in
+`templates/forms.md`: the original report moves under `## Why` unchanged, the affected systems come from
+the code, and the desired outcome or expected behaviour becomes testable acceptance criteria. A
+plain-language report (it has a `<!-- linear-ai:intake-nontech -->` comment) needs this translation with
+extra care, since its words are the reporter's, not technical terms.
 
 ## 3. Questions
 

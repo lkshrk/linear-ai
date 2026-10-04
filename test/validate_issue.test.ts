@@ -188,3 +188,14 @@ describe('validate_issue CLI and template', () => {
     expect(run(file, '--require-design').exitCode).toBe(1)
   })
 })
+
+describe('agent template', () => {
+  test('templates/issue.md has every section in order, and an unfilled copy fails only as empty', () => {
+    const template = readFileSync(join(import.meta.dir, '..', 'templates', 'issue.md'), 'utf8')
+    const r = validateIssue(template)
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(new Set(r.errors.map((e) => e.code))).toEqual(new Set(['empty_section']))
+    expect(r.errors.map((e) => e.section)).toEqual(ISSUE_SECTIONS.map((s) => s.heading))
+  })
+})

@@ -56,9 +56,16 @@ The status is the state. One mapping for every team:
 
 ## The Issue Is The Plan
 
-The issue description follows `templates/issue.md`: eleven `##` sections from Goal to Verify. Refinement
-fills them; there is no separate plan comment. `scripts/validate_issue.ts FILE` checks a description and
-prints every problem. An issue moves to Todo only when it passes.
+Two shapes, two audiences:
+
+- **Forms for people** (`templates/forms.md`): the Linear templates Feature, Bug and Improvements. Short
+  fields; an issue in this shape stays in Backlog.
+- **The agent format** (`templates/issue.md`, the Linear template "Agent task"): eleven `##` sections from
+  Goal to Verify, each heading optionally followed by a hint in parentheses. Refinement translates a form
+  into it (mapping in `templates/forms.md`) or fills it directly; there is no separate plan comment.
+
+`scripts/validate_issue.ts FILE` checks an agent-format description and prints every problem. An issue
+moves to Todo only when it passes.
 
 Questions during refinement are comments that mention the human; answers are folded back into the
 description.

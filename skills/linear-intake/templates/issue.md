@@ -1,43 +1,21 @@
-## Goal
+## Goal (the change, one or two sentences)
 
-<!-- the change, one or two sentences -->
+## Why (the reason, linked to the feature or report)
 
-## Why
+## Design excerpt (link to the design document and section, or none for a small fix)
 
-<!-- the reason, linked to the feature or report -->
+## Interfaces in (consumed interfaces, or none)
 
-## Design excerpt
+## Interfaces out (provided interfaces, or none)
 
-<!-- link to the design document plus the section name, or none for a small fix -->
+## Files (one list item per repository-relative path or glob)
 
-## Interfaces in
+## Constraints (rules to keep, or none)
 
-<!-- interfaces this issue consumes, or none -->
+## Out of scope (what to leave alone, or none)
 
-## Interfaces out
+## Acceptance criteria (list items)
 
-<!-- interfaces this issue provides to dependents, or none -->
+## Tests expected (list items)
 
-## Files
-
-<!-- one list item per repository-relative path or glob -->
-
-## Constraints
-
-<!-- rules the change must keep, or none -->
-
-## Out of scope
-
-<!-- what the change must leave alone, or none -->
-
-## Acceptance criteria
-
-<!-- at least one list item -->
-
-## Tests expected
-
-<!-- at least one list item -->
-
-## Verify
-
-<!-- exact commands in a fenced code block -->
+## Verify (exact commands in a fenced code block)

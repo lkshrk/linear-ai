@@ -5,7 +5,7 @@ description: "Turn a rough bug report, feature idea, copied draft or a non-techn
 
 # Linear Intake
 
-Read `docs/workflow.md` (state and labels) and `templates/issue.md`.
+Read `docs/workflow.md` (state and labels) and `templates/forms.md` (the forms people file).
 
 Intake creates or cleans up an issue in **Backlog**. It does not diagnose root causes or plan the
 implementation; that is `linear-refine`.
@@ -21,10 +21,13 @@ implementation; that is `linear-refine`.
 
 ## Technical Mode (default)
 
-Draft the description in the `templates/issue.md` structure. Fill what the report already answers (Goal,
-Why, any known files, acceptance criteria); leave the rest as the template's placeholders. A partly filled
-description is fine in Backlog. Check whether a similar issue already exists and offer to link it as
-related or duplicate instead of creating a new one.
+Write the description in the form for its type (`templates/forms.md`: Feature, Bug or Improvements), one
+`##` heading per field, and fill every required field from the report; ask for what is missing. An issue
+already filed through a Linear form only needs its gaps filled. Check whether a similar issue already
+exists and offer to link it as related or duplicate instead of creating a new one.
+
+Write the agent format (`templates/issue.md`) directly only when the human hands over an
+implementation-ready plan; then validate it as `linear-refine` step 5 does.
 
 ## Non-Technical Mode
 
@@ -38,9 +41,9 @@ Use it when the person reporting is not technical, or when asked.
 - For UI problems and errors, strongly encourage screenshots or recordings.
 - Capture their words faithfully. Do not ask them about code, root causes or tests.
 
-Put the report into `## Goal` (one-sentence summary) and `## Why` (their full report under the headings
-What happened, Expected, Affected, Impact, Steps, Evidence, Workaround, Success); leave the other sections
-as placeholders. Post one comment ending in `<!-- linear-ai:intake-nontech -->` so `linear-refine` knows
+Put the report into the Bug or Feature form (`templates/forms.md`): what happened, expected or desired
+outcome, steps, evidence as their fields; who is affected, impact, frequency and workaround go into
+`Context`. Post one comment ending in `<!-- linear-ai:intake-nontech -->` so `linear-refine` knows
 the issue needs technical translation. If routing is unclear, ask a plain question such as "Which product
 or team should see this?".
 
