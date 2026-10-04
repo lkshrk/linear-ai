@@ -86,7 +86,12 @@ Canceled, that type labels exist, and whether v1 labels are still in use.
 No workflow labels are required. Optional:
 
 - an opt-in label (default `autopilot`) for issues an agent may pick up on its own;
-- `ai-stage:<stage>` labels, only for issues meant to continue in nightshift.
+- `ai-stage:<stage>` labels, only for issues meant to continue in nightshift;
+- a `Repo` group (`repo:<name>`) for projects that span several repositories;
+- an `ai-merge` project label group (`manual`, `auto`, `feature-branch`) for the merge mode.
+
+Issue templates: short forms for people (Feature, Bug, Improvements; `templates/forms.md`) and the
+eleven-section agent template for implementation-ready issues (`templates/issue.md`).
 
 ### Upgrading From v1
 

@@ -16,7 +16,9 @@ implementation; that is `linear-refine`.
    `list_issue_labels`). Never use a hardcoded list.
 2. Propose the target team, project, type label (`bug`, `feature` or the workspace's Type group) and any
    other fitting labels from that live data; ask whether to add more before saving.
-3. Set the opt-in label (default `autopilot`) only when the human wants an AI agent or nightshift to pick
+3. When the project spans several repositories, set the `repo:<name>` label for the one the issue changes;
+   ask if it is unclear.
+4. Set the opt-in label (default `autopilot`) only when the human wants an AI agent or nightshift to pick
    the issue up later.
 
 ## Technical Mode (default)

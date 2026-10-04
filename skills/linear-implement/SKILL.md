@@ -51,9 +51,11 @@ the cap is reached without convergence, move the issue to Blocked with the open 
 
 ## 5. Integrate
 
-Default: rebase onto the local main branch, squash to the minimal reviewable commits and integrate into
-main. Use a feature branch or PR only when the issue explicitly requires it. Ask the human when the
-destination is unclear; never infer it from a branch name or an existing draft PR.
+The project's `ai-merge` label decides the destination (`docs/workflow.md` → Implementation Rules):
+`manual` → PR, `auto` → merge to main once checks pass, `feature-branch` → `feature/<project>`.
+Without the label: rebase onto the local main branch, squash to the minimal reviewable commits and
+integrate into main; use a feature branch or PR only when the issue explicitly requires it. Ask the human
+when the destination is unclear; never infer it from a branch name or an existing draft PR.
 
 - Commit subjects use Conventional Commits with the issue ID as scope: `fix(ABC-123): …`.
 - Link with a closing magic word: `Fixes ABC-123` in the commit body (direct to main) or in the PR

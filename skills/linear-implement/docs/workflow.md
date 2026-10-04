@@ -76,6 +76,9 @@ description.
   workflow.
 - `ai-stage:<stage>` is optional. Set it only when the issue is meant to continue in nightshift later
   (e.g. `ai-stage:implementation` for a refined task).
+- `Repo` group (`repo:<name>`): which repository an issue changes, required when its project maps to
+  several repositories.
+- `ai-merge` (project label group): the project's merge mode, `manual`, `auto` or `feature-branch`.
 - No other workflow labels.
 
 ## Comments
@@ -97,8 +100,10 @@ One comment per milestone, each ending with a hidden marker so a rerun does not 
 - Work happens in `<repo>/.worktrees/<issue-id>[-suffix]`, never in a branch's own checkout, `main` or
   `master`.
 - At most five review rounds by default, each followed by a short round summary in the session.
-- Integration: rebase onto the local main branch, squash to the minimal reviewable commits, integrate into
-  main (or open a PR when the repository requires one).
+- Integration follows the project's `ai-merge` label: `manual` opens a PR for the human to merge, `auto`
+  merges once checks pass, `feature-branch` integrates into `feature/<project>`, which reaches main through
+  one PR at acceptance. Without a label: rebase onto the local main branch, squash to the minimal reviewable
+  commits and integrate into main, or open a PR when the repository requires one.
 - Done only when the change is on main. An open PR is handoff evidence, not completion.
 
 ## Splitting And Parents
@@ -110,5 +115,6 @@ One comment per milestone, each ending with a hidden marker so a rerun does not 
 
 ## Repository Boundaries
 
-An issue names its repository (project mapping or a `repo` note in the description). A change that needs a
+An issue names its repository: the project's only repository, or the `repo:<name>` label when the project
+spans several. A change that needs a
 second repository gets its own issue there, linked with `blocks` or `related`.
