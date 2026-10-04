@@ -32,8 +32,8 @@ async function smokeAgent(agent: "codex" | "claude-code", expectedPath: string):
     await run("npx", ["-y", "skills", "add", ROOT, "--skill", "linear-status", "--agent", agent, "--copy", "-y"], dir);
     const skillRoot = path.join(dir, expectedPath, "linear-status");
     await assertContains(path.join(skillRoot, "SKILL.md"), "name: linear-status");
-    await assertContains(path.join(skillRoot, "docs", "workflow.md"), "Claim Lock Rule");
-    await assertContains(path.join(skillRoot, "scripts", "validate_marked_comments.ts"), "SCHEMA_FILES");
+    await assertContains(path.join(skillRoot, "docs", "workflow.md"), "## Claiming");
+    await assertContains(path.join(skillRoot, "scripts", "validate_issue.ts"), "export function validateIssue");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -41,31 +41,19 @@ async function smokeAgent(agent: "codex" | "claude-code", expectedPath: string):
 
 async function main(): Promise<number> {
   try {
-    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "Run implementation in auto mode once a valid ready plan exists.");
-    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "Before starting direct implementation, verify the required implementer permission context is active.");
-    await assertContains(path.join(ROOT, "skills/linear-batch-implement/SKILL.md"), "the same required implementer permission context used by direct runs");
-    await assertContains(path.join(ROOT, "skills/linear-deliver-feature/SKILL.md"), "the same required implementer permission context used by direct runs has been passed or confirmed");
-    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority");
-    await assertContains(path.join(ROOT, "docs/implementer.md"), "Run in auto mode for safe, reversible implementation work from a valid ready plan.");
-    await assertContains(path.join(ROOT, "docs/orchestrator.md"), "the same required implementer permission context used by direct `linear-implement` runs");
-    await assertContains(path.join(ROOT, "docs/implementer.md"), "the next step is destructive or irreversible");
+    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "Run in auto mode: inspect, edit, test and verify without asking again.");
+    await assertContains(path.join(ROOT, "skills/linear-implement/SKILL.md"), "destructive, irreversible, credential-gated, production-affecting, scope-changing or genuinely ambiguous");
     await assertContains(path.join(ROOT, "skills/linear-review/SKILL.md"), "name: linear-review");
-    await assertContains(path.join(ROOT, "skills/linear-review/SKILL.md"), "Dispatch the review lanes as independent parallel subagents");
+    await assertContains(path.join(ROOT, "skills/linear-review/SKILL.md"), "Run the lanes from `docs/review-lanes.md` as independent parallel subagents");
 
     const listOutput = await run("npx", ["-y", "skills", "add", ROOT, "--list"], ROOT);
     for (const skill of [
-      "linear-batch-close",
-      "linear-batch-implement",
-      "linear-batch-refine",
-      "linear-create-issue",
+      "linear-intake",
       "linear-refine",
       "linear-implement",
-      "linear-close",
-      "linear-deliver-feature",
       "linear-status",
-      "linear-doctor",
       "linear-review",
-      "linear-repo-reconcile"
+      "linear-reconcile"
     ]) {
       if (!listOutput.includes(skill)) throw new Error(`npx skills list did not include ${skill}`);
     }

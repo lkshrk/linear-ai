@@ -1,110 +1,75 @@
 ---
 name: linear-refine
-description: "Refine a Linear issue into a ready implementation plan through targeted questions, local review, and marked plan comments. Use when an issue needs clarification, planning, accepted unknowns, acceptance criteria, or a `llm-ready` handoff."
+description: "Refine a Linear issue until its description is a valid implementation-ready issue: resolve material ambiguity one question at a time, fill the eleven template sections, validate and move it to Todo. Use when an issue is in Backlog, was reported in plain language, or failed validation."
 ---
 
 # Linear Refine
 
-Use the repository root as the workflow source. Read and follow:
+Read and follow `docs/workflow.md` (state, claiming, comments), `templates/issue.md` (the sections) and
+`templates/forms.md` (the forms people file and how they map into the sections).
 
-- `agents/questioner.md`
-- `docs/questioner.md`
-- `docs/agent-required-passes.md`
-- `docs/superpowers-linear-persistence.md`
-- `templates/linear-plan-comment.md`
-- `schemas/linear-ai.plan.v1.schema.yaml`
+Batch mode: when asked for several issues, discover Backlog issues in scope, show the queue, and refine one
+issue at a time; collect each issue's questions before moving on.
 
-Ask one question at a time. Run the required local review/grill pass before marking a plan ready.
+## 1. Claim
 
-## Claim Lock
+Read the issue and its comments. Skip it if someone else is actively working on it
+(`docs/workflow.md` → Claiming) or it belongs to nightshift. Set yourself as assignee; the issue stays in
+Backlog while you refine.
 
-Follow the Claim Lock Rule in `docs/workflow.md`. On start, re-read the issue; if it already carries `in-use` and this run is not resuming its own claim, stop and report the issue as claimed without changing it. Otherwise add the `in-use` label when claiming the issue. Remove `in-use` when this run stops working the issue: on ready handoff, blocked, or abandoned. `in-use` is outside the `llm-*` namespace, so release it explicitly.
+## 2. Gather Evidence
 
-When claiming, also write the `linear-ai:claim` block to the issue description (`templates/linear-claim-block.md`) with `claimed_by: linear-refine` and an ISO 8601 `claimed_at`, preserving other description content. When releasing, remove the claim block.
+Read the issue, its comments, linked documents and the code it touches. Answer from these sources whatever
+they can answer; ask the human only what they cannot.
 
-## Questionnaire Start
+A description in form shape (Feature, Bug or Improvements fields) is translated with the mapping in
+`templates/forms.md`: the original report moves under `## Why` unchanged, the affected systems come from
+the code, and the desired outcome or expected behaviour becomes testable acceptance criteria. A
+plain-language report (it has a `<!-- linear-ai:intake-nontech -->` comment) needs this translation with
+extra care, since its words are the reporter's, not technical terms.
 
-Before writing a ready plan, decide from source evidence whether a questionnaire is needed. Source evidence includes the issue, comments, linked docs, and codebase inspection. If no material ambiguity remains, record that no questionnaire was needed and continue to the ready plan.
+## 3. Questions
 
-Material ambiguity = any branch where product behavior, UX, scope, or data semantics could plausibly vary between reasonable options. Fix-design choices with more than one plausible option are always material, even when code evidence favors one — present the evidence with the recommended answer rather than deciding. Only purely mechanical choices (naming, file placement, replicating an identical existing pattern) may be decided without asking; record the rejected alternatives in `do_not_assume`.
+Decide whether material ambiguity remains: any branch where product behaviour, UX, scope or data
+semantics could reasonably differ, and any fix-design choice with more than one plausible option, even
+when the code favours one. Purely mechanical choices (naming, file placement, copying an identical
+existing pattern) you decide yourself.
 
-If material ambiguity remains after source evidence is exhausted, start a real questionnaire/interview path instead of relying on copied grill prose. Use `grill-me` or `grill-with-docs` when available, but do not require those skills to be installed. If they are unavailable, run the fallback directly: ask exactly one concrete question, include your recommended answer, wait for the user's response, then update the plan draft before asking the next question.
+If ambiguity remains, ask exactly one concrete question at a time, each with your recommended answer and
+the evidence for it. After each answer, restate the decision, update your draft, and continue with the
+next open branch. Use `grill-me` or `grill-with-docs` if installed; the rule is the same without them.
+An unknown the human explicitly accepts goes into `## Constraints` as `Accepted unknown: …`.
 
-Do not mark `plan_status: ready` until the questionnaire evidence shows that every material ambiguity was either answered or explicitly accepted as unknown.
+When running as a batch subagent without a human channel, relay each question to the orchestrator and
+wait for the answer; do not guess.
 
-## Subagent Relay Mode
+When the human is unavailable, post the batched questions as one `<!-- linear-ai:blocked -->` comment
+mentioning them and move the issue to Blocked.
 
-When running as a batch subagent without a direct human channel, the interview requirement is not waived. Send each question round to the dispatching orchestrator and wait for relayed answers, keeping the `in-use` claim while paused. Never set `plan_status: ready` while a material question is unanswered and not explicitly accepted by the operator.
+## 4. Write The Description
 
-## Non-Technical Intake Handoff
+Fill every section of `templates/issue.md` in the issue description, keeping any useful existing text:
 
-If the issue carries `nontechnical-intake`, treat it as a plain-language intake that requires technical translation before planning.
+- `## Files`: repository-relative paths or globs only; this is the expected touch set.
+- `## Acceptance criteria` and `## Tests expected`: one checkable list item each.
+- `## Verify`: the exact commands, in a fenced block.
+- `## Design excerpt`: a link to the design document and section, or `none` for a small fix.
+- `none` is allowed in Interfaces in/out, Constraints and Out of scope.
 
-Before writing a ready plan:
+An issue too large for one worktree session is split into child issues, each with its own valid
+description; the parent keeps the shared context.
 
-- Preserve the original plain-language report.
-- Read the `Technical triage gaps` section.
-- Identify affected systems from the issue, comments, linked docs, Linear context, and repository evidence.
-- Convert desired success into testable acceptance criteria.
-- Replace or complete `Technical triage gaps` with technical findings.
-- Keep unknowns explicit when they cannot be resolved from available evidence.
-- Do not mark `plan_status: ready` until the remaining unknowns are either resolved or explicitly accepted.
+## 5. Validate And Hand Off
 
-When technical triage is complete, remove `nontechnical-intake` with `save_issue` while applying the normal refinement label transition. If Linear writes are unavailable, include removal of `nontechnical-intake` in `REQUIRED_LINEAR_MUTATIONS`.
+Save the description to a file and run `scripts/validate_issue.ts <file>` (`--require-design` when the
+project uses design documents). Fix every reported problem. Then move the issue to Todo, optionally add
+`ai-stage:implementation` when nightshift should continue it, and post one `<!-- linear-ai:refined -->`
+comment summarising what was clarified.
 
-## Grill Continuation
+If Linear write tools are unavailable, print the exact description, status change and comment for the
+human to apply.
 
-Interview the human relentlessly about every material branch of the plan until there is shared understanding. Walk the design tree one decision at a time, resolve dependencies between decisions, and provide the recommended answer for each question.
+## Handoff
 
-Ask one question at a time. If a question can be answered by exploring the issue, comments, linked docs, or codebase, explore those sources instead of asking.
-
-After each human answer, restate the accepted decision, update the plan draft or Linear comment when available, and ask if there is anything else to add for that branch. If yes, continue the current step with the next focused question. If no and the branch is resolved, move to the next branch or recommend moving to the next workflow step.
-
-Do not mark `plan_status: ready` until grill continuation has completed for every material branch or the human has explicitly accepted the remaining unknowns.
-
-## Linear MCP Contract
-
-Use these Linear MCP tools when available:
-
-- `get_issue` - read current issue fields, labels, status, and branch metadata.
-- `list_comments` - read existing marked plan/status comments before creating a new revision.
-- `save_comment` - post the marked plan comment or reply to the relevant thread.
-- `save_issue` - apply `llm-ready`, remove other `llm-*` labels, add the `in-use` claim on start and remove it on stop, and update status when writes are available.
-
-Validate marked plan comments with:
-
-```sh
-scripts/validate_marked_comments.ts <plan-comment-file>
-```
-
-If a Linear metadata snapshot is available, validate labels with:
-
-```sh
-scripts/validate_marked_comments.ts --metadata <metadata.json> <plan-comment-file>
-```
-
-Use the local JavaScript package manager or runtime available to the agent: Bun can run the `.ts` scripts directly; Node/npm/pnpm/yarn environments should run them through a TypeScript runner such as `tsx`.
-
-If Linear MCP write tools are unavailable, do not claim labels, status, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact comment body and label/status changes.
-
-## Step Completion Handoff
-
-When refinement completes a draft, blocked, or ready plan revision, report what changed, the validation/write evidence, current Linear labels/status, and the recommended next step.
-
-Ask if there is anything else to add for this refinement step. If yes, continue the current step and update the plan. If no, recommend moving to the next workflow step, normally `linear-implement` when `llm-ready` is present or another grill branch when ambiguity remains.
-
-After the add-more question is answered "no", ask whether the user wants to continue with the recommended next skill. Name the recommended next skill explicitly and wait for user confirmation; do not auto-run it.
-
-Use this response shape:
-
-- Current phase
-- What changed
-- Evidence
-- Missing evidence
-- Open blocker
-- Recommended next step
-- Recommended next skill
-- Question: Is there anything else to add before moving on?
-- Question: Do you want to continue with the recommended next skill?
-
-Stop when the newest marked plan comment is `plan_status: ready`, labels/status mutations are applied or emitted, and no unaccepted blocking questions remain.
+Finish with: current status, what changed, open or accepted unknowns, and the recommended next skill
+(normally `linear-implement`). Ask whether the human wants to continue with it; do not run it automatically.

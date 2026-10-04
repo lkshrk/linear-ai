@@ -1,84 +1,69 @@
 ---
 name: linear-status
-description: "Inspect a Linear issue and report the current workflow phase, missing evidence, state inconsistencies, and recommended next skill. Use when the user asks what is next, where the issue stands, whether work can resume, or why labels/comments disagree."
+description: "Report where a Linear issue stands and what to do next, check whether a workspace is set up for the workflow (doctor), or migrate issues from the linear-ai v1 label workflow. Use when unsure what is next, before first use in a workspace, or when upgrading from v1."
 ---
 
 # Linear Status
 
-Use this as the read-only status and resume detector for one Linear issue. Start here when an agent is unsure what to do next.
+Read `docs/workflow.md`. All modes are read-only unless the human explicitly approves the listed changes.
 
-## Linear MCP Contract
+## Issue Mode (default)
 
-Use these Linear MCP tools when available:
+Determine the phase from the issue's actual state, not from memory:
 
-- `get_issue` - read the issue description dashboard, labels, status, assignee, project, branch metadata, and links.
-- `list_comments` - find the newest marked plan and status comments.
+| Status and evidence | Phase | Next skill |
+|---|---|---|
+| no issue yet | intake | `linear-intake` |
+| Backlog, or the description fails `scripts/validate_issue.ts` | refine | `linear-refine` |
+| Todo and the description is valid | implement | `linear-implement` |
+| In Progress, recently updated | in progress (claimed by the assignee or delegate) | none; report who holds it |
+| In Progress, no update beyond the stale threshold | stale claim | `linear-implement` (takes over with a comment) |
+| Blocked | blocked; quote the latest `<!-- linear-ai:blocked -->` comment | answer the question, then `linear-refine` or `linear-implement` |
+| In Review | review handoff; check whether the PR is merged | `linear-implement` (close) once merged |
+| Done without a `<!-- linear-ai:closed -->` comment | unverified close | `linear-implement` (close) |
+| delegated to nightshift or carrying its opt-in label | nightshift owns it | none |
 
-Validate marked comments and the issue description dashboard with:
+Report contradictions (Todo with an invalid description, Done with an open PR, an issue still carrying v1
+`llm-*` or `in-use` labels) and the smallest repair.
 
-```sh
-scripts/validate_marked_comments.ts --description <issue-description-file> <comment-file>
-```
+## Doctor Mode
 
-Use the local JavaScript package manager or runtime available to the agent: Bun can run the `.ts` scripts directly; Node/npm/pnpm/yarn environments should run them through a TypeScript runner such as `tsx`.
+Check a workspace before first use, from live data (`list_teams`, `list_projects`, `list_issue_labels`):
 
-If Linear MCP read tools are unavailable, ask for pasted issue description, labels, status, and newest marked comments. If Linear MCP write tools are unavailable or the issue state needs repair, emit `REQUIRED_LINEAR_MUTATIONS` with exact description, labels, status, and comments to apply.
+- every team in scope has the statuses Backlog, Todo, In Progress, In Review, Blocked (type started), Done,
+  Canceled; report missing ones and that Blocked has to be added in the team's workflow settings;
+- the opt-in label exists (default `autopilot`) if the human uses one;
+- type labels exist (`bug`, `feature` or a Type group);
+- leftover v1 labels (`llm-*`, `in-use`, `sp-*`, `nontechnical-intake`) and how many open issues still carry
+  them; recommend Migrate Mode.
 
-## Phase Detection
+Propose fixes; apply only the ones the human approves.
 
-Determine current phase from actual issue state, not memory:
+## Migrate Mode (from v1)
 
-- `setup-blocked` - required Linear labels, projects, or component/type labels are missing; run `linear-doctor`.
-- `create-issue` - no Linear issue exists or intake metadata is incomplete; run `linear-create-issue`.
-- `refine-plan` - issue has `llm-refine`, no valid ready plan, or open product questions; run `linear-refine`.
-- `implement` - issue has `llm-ready` and newest valid plan has `plan_status: ready`; run `linear-implement`.
-- `blocked` - issue has `llm-blocked` or newest status comment has unresolved questions; run `linear-refine` or ask the listed blocker question.
-- `review-handoff` - issue has `llm-review` or newest status comment is `review_ready`; prepare human review.
-- `repair-state` - labels, description dashboard, and comments disagree, multiple `llm-*` states are present, newest marked comment is invalid, required dashboard/status evidence is missing, or the `in-use` claim lock is stale or contradictory (see Claim Lock Check).
+v1 kept the workflow state in labels. Map each open issue carrying them and show the plan first:
 
-When labels, the description dashboard, and comments disagree, prefer validated marked evidence as evidence, then recommend the smallest description, label, or status repair.
+| v1 label | v2 |
+|---|---|
+| `llm-refine` | Backlog |
+| `llm-ready` | Todo if the description passes `scripts/validate_issue.ts`, otherwise Backlog (needs `linear-refine`) |
+| `llm-active` | In Progress, assignee kept |
+| `llm-blocked` | Blocked |
+| `llm-review` | In Review |
+| `in-use` + claim block | removed; the assignee is the claim |
+| `nontechnical-intake` | removed; post a `<!-- linear-ai:intake-nontech -->` comment |
+| `sp-*` | removed |
 
-## Claim Lock Check
+- The newest v1 plan comment's content moves into the description's template sections when the issue goes
+  to Todo; if that is not possible mechanically, the issue goes to Backlog for `linear-refine`.
+- Dashboard and claim blocks are removed from the description; plan and status comments stay as history.
+- Only after every open issue is migrated, the v1 labels are archived (not deleted) with the human's
+  approval.
 
-Inspect the `in-use` claim lock per the Claim Lock Rule in `docs/workflow.md` and report a `claim-stale` finding under `repair-state` when the lock looks orphaned.
+Show the full list of planned changes per issue, wait for approval, then apply them and report what was
+done. If Linear write tools are unavailable, print the list for the human to apply.
 
-Tier 1 — structural contradictions (label-only, reliable). Flag `in-use` when it cannot legitimately coexist with the current state:
+## Handoff
 
-- the issue is Done/closed but still carries `in-use` (a missed release),
-- `in-use` is present with no active work state, or with a state that releases on stop (`llm-ready`, `llm-blocked`).
-
-`in-use` alongside `llm-refine`, `llm-active`, or `llm-review` is a legitimate held lock; do not flag it on labels alone.
-
-Tier 2 — staleness (needs claim metadata). When the `linear-ai:claim` block is present in the description, treat the lock as stale if `now - claimed_at` exceeds the stale threshold (default 60 minutes; let the user override). Report `claimed_by` and the age. If `in-use` is present but no claim block exists, flag the mismatch (a label and claim block must be present or absent together) and fall back to the Tier 1 checks.
-
-For any stale or contradictory lock, recommend the smallest repair: remove the `in-use` label and the `linear-ai:claim` block. Do not apply the repair unless explicitly acting as a finalizer with write tools available; otherwise emit it as `REQUIRED_LINEAR_MUTATIONS`.
-
-## Step Completion Handoff
-
-Report:
-
-- Current phase
-- What changed, if this status check repaired or clarified state
-- Evidence from issue labels/status and newest marked comments
-- Missing evidence
-- Open blocker
-- Recommended next step
-- Recommended next skill
-
-Ask if there is anything else to add for this status step. If yes, continue the current step by re-reading the new evidence. If no, recommend moving to the next workflow step and name the skill to run.
-
-After the add-more question is answered "no", ask whether the user wants to continue with the recommended next skill. Name the recommended next skill explicitly and wait for user confirmation; do not auto-run it.
-
-Use this response shape:
-
-- Current phase
-- What changed
-- Evidence
-- Missing evidence
-- Open blocker
-- Recommended next step
-- Recommended next skill
-- Question: Is there anything else to add before moving on?
-- Question: Do you want to continue with the recommended next skill?
-
-Stop after producing a phase diagnosis, missing evidence list, and recommended next skill. Do not change issue state unless explicitly acting as a finalizer with write tools available.
+Finish with: the phase or findings, evidence, the smallest repair, and the recommended next skill. Ask
+whether the human wants to continue with it; do not run it automatically.

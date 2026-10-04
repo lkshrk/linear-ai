@@ -1,156 +1,100 @@
 ---
 name: linear-implement
-description: "Execute a ready Linear implementation plan: make code changes, verify them, ask for the final code destination, and post marked implementation status comments. Use when a Linear issue already has a ready plan and needs implementation."
+description: "Implement a ready Linear issue end to end: claim it, work in an issue worktree, run bounded review rounds, integrate into main, verify the change is on main and close the issue. Use when an issue is in Todo with a valid description, or to finish an issue whose change was merged."
 ---
 
 # Linear Implement
 
-Use the repository root as the workflow source. Read and follow:
+Read and follow `docs/workflow.md` (state, claiming, comments, implementation rules) and
+`docs/agent-required-passes.md` (review lenses and self-gates).
 
-- `agents/implementer.md`
-- `docs/implementer.md`
-- `docs/agent-required-passes.md`
-- `docs/superpowers-linear-persistence.md`
-- `templates/linear-status-comment.md`
-- `templates/linear-dashboard-comment.md`
-- `schemas/linear-ai.status.v1.schema.yaml`
-- `schemas/linear-ai.dashboard.v1.schema.yaml`
+Batch mode: when asked for several issues, discover Todo issues in scope (`docs/workflow.md` → Scope),
+show the queue with ID and title, confirm it and the parallelism with the human, then run one issue per
+isolated worktree. Never run two agents on the same issue.
 
-Start from the newest valid marked plan comment. Do not invent missing product behavior. If blocked, post batched questions in a marked status comment and apply or emit the correct Linear mutations.
+## 1. Claim
 
-## Claim Lock
+1. Read the issue. If it is In Progress and was updated by someone else within the stale threshold, stop
+   and report it as claimed. If it belongs to nightshift (`docs/workflow.md` → Nightshift coexistence),
+   stop.
+2. Save the description to a file and run `scripts/validate_issue.ts <file>` (add `--require-design` when
+   the project uses design documents). If it fails, move the issue to Backlog with the problems as a
+   comment and recommend `linear-refine`.
+3. Set yourself as assignee (or the AI app as delegate) and move the issue to In Progress.
 
-Follow the Claim Lock Rule in `docs/workflow.md`. On start, re-read the issue; if it already carries `in-use` and this run is not resuming its own claim, stop and report the issue as claimed without changing it. Otherwise add the `in-use` label when claiming the issue (alongside applying `llm-active`). Remove `in-use` when this run stops working the issue: on review-ready handoff, blocked, abandoned, or failure. `in-use` is outside the `llm-*` namespace, so bulk `llm-*` strips do not remove it; release it explicitly.
+## 2. Gate
 
-When claiming, also write the `linear-ai:claim` block to the issue description (`templates/linear-claim-block.md`) with `claimed_by: linear-implement` and an ISO 8601 `claimed_at`. When releasing, remove the claim block so the description stays consistent with the label.
+Before changing code, re-read the description and the code it names. If a material question is open, move
+the issue to Blocked with one `<!-- linear-ai:blocked -->` comment that batches the questions and mentions
+the human. Do not start with an open question.
 
-## Pre-Implementation Gate
+## 3. Implement
 
-Before changing any code, run this gate once the issue is claimed:
+- Work in `<repo>/.worktrees/<issue-id>[-suffix]`; create it from the up-to-date main branch.
+- Run in auto mode: inspect, edit, test and verify without asking again. Ask or block only for
+  destructive, irreversible, credential-gated, production-affecting, scope-changing or genuinely ambiguous
+  steps.
+- Split independent work (by repository, module, acceptance item or test surface) into parallel lanes,
+  each in its own temporary worktree; merge lanes back only after reviewing their diff and rerunning the
+  checks. Remove temporary worktrees afterwards.
+- `## Files` is the expected touch set; touching other files is fine when needed, but say so in the
+  handoff.
+- Run every command in `## Verify` and the repository's own checks.
 
-1. Re-confirm no open questions remain. Re-read the newest ready plan, its `open_questions`, `accepted_unknowns`, and `do_not_assume`, plus the relevant code. If any material question is unanswered and not explicitly accepted, or you discover new ambiguity while reading the code, stop and block with `llm-blocked` and batched questions instead of guessing or starting. Do not begin implementation with an open material question.
-2. When there are no open questions, decompose the ready plan into independent parallel lanes - split by repository, module, checklist item, test surface, or verification lane so that lanes touching disjoint files can run at the same time. Hand each lane to its own subagent in an isolated worktree per the Parallel Execution rules, and reserve sequential work only for lanes that must share mutable files.
+## 4. Review Rounds
 
-## Auto Mode
+When the change is complete and verification passes, run review rounds with independent reviewers
+(general, refactor, bug hunter, security, scope against the description, plus language/area reviewers the
+runtime has). Fix or justify every finding and rerun verification. At most five rounds unless the issue
+says otherwise; after each round give a short summary (findings by severity, fixed, justified, open). If
+the cap is reached without convergence, move the issue to Blocked with the open findings.
 
-Run implementation in auto mode once a valid ready plan exists. Continue through safe, reversible local inspect/edit/test/verify steps without asking for permission again. This includes reading repo context, creating the repo-local TDD plan, editing files named or implied by the ready plan, updating tests, running focused validation, updating the Linear dashboard/status evidence, and iterating on failed checks.
+## 5. Integrate
 
-Ask or block only when the next step is destructive, irreversible, credential-gated, external-production affecting, materially scope-changing, missing required authority, or genuinely ambiguous in a way that would create nontrivial rework. Batch blocker questions in a marked status comment instead of interrupting for routine implementation choices.
+The project's `ai-merge` label decides the destination (`docs/workflow.md` → Implementation Rules):
+`manual` → PR, `auto` → merge to main once checks pass, `feature-branch` → `feature/<project>`.
+Without the label: rebase onto the local main branch, squash to the minimal reviewable commits and
+integrate into main; use a feature branch or PR only when the issue explicitly requires it. Ask the human
+when the destination is unclear; never infer it from a branch name or an existing draft PR.
 
-## Required Permission Context
+- Commit subjects use Conventional Commits with the issue ID as scope: `fix(ABC-123): …`.
+- Link with a closing magic word: `Fixes ABC-123` in the commit body (direct to main) or in the PR
+  description (PR destination).
+- With a PR destination, move the issue to In Review and post `<!-- linear-ai:handoff -->` with the PR,
+  the verification commands and their results. Closing happens in step 6 once the PR is merged.
 
-Before starting direct implementation, verify the required implementer permission context is active. The session must have workspace write access for the target repository, permission to run the repository package manager and verification commands, Linear MCP read/write tools for dashboard/status mutations, Git/GitHub tools when branch or PR work is in scope, and any project MCP tools required by the ready plan.
+## 6. Close
 
-Do not begin routine implementation in a prompt-by-prompt permission mode. Establish or inherit the required implementer permission context first so approved safe, reversible work can proceed without repeated confirmations. If that context cannot be established, narrow the work to safe read-only inspection or post/emit a blocked status with the missing authority instead of repeatedly asking during routine steps.
-
-No implementation or code changes before the Superpowers task list is mirrored into the Linear issue description dashboard or `REQUIRED_LINEAR_MUTATIONS` is emitted.
-
-Maintain one dashboard block in the issue description with schema `linear-ai.dashboard.v1`. Mirror the Superpowers task list into that dashboard with CLI-style state symbols, stable ready-plan task IDs, and `last_checked` repair evidence after each top-level task state change. Inspect the actual code/worktree state before marking a task done. Use a dashboard comment only as fallback when description writes are unavailable.
-
-## Parallel Execution
-
-Use subagents heavily for independent implementation work. Split the ready plan into parallel lanes by repository, module, checklist item, test surface, review lane, or verification lane when those lanes do not require the same mutable files.
-
-Implementation always happens in an isolated issue worktree at `<repo>/.worktrees/<issue-id>-<optional suffix>` unless you can prove it is already inside the correct issue worktree. Never implement directly on branches as the working tree, and never implement directly on `main` or `master`. Treat the branch name or Git ref from the ready plan or Linear issue as Git plumbing attached to the issue worktree, not as the primary workspace.
-
-Prefer git worktree isolation for parallel code-changing subagents. Each code-changing lane should have its own temporary lane worktree or Git ref, run its own focused verification, and report changed files, tests run, remaining risks, and dashboard task IDs. Do not place multiple code-changing subagents in the same working tree.
-
-Before dispatching subagents, verify they have the right tools and permissions for the lane: repo read/write access, package manager, test commands, Linear MCP read/write tools if needed, Git/GitHub tools when PR work is in scope, and any required project MCP tools. If those tools and permissions are not available, either narrow the lane to read-only work or run it in the main session.
-
-Merge back subagent work only after reviewing the diff, resolving conflicts, updating the dashboard task list, and rerunning relevant verification in the issue worktree.
-
-Clean up temporary lane worktrees after merge-back and verification. Keep temporary lane worktrees distinct from the persistent issue worktree. If any temporary lane worktree is intentionally kept, report its path, branch, owner, and reason in the status comment.
-
-## Implementation Review Loop
-
-When implementation looks complete and local verification passes, run the Mandatory Implementation Review Loop from `docs/agent-required-passes.md` before the destination question and before applying `llm-review`. Dispatch independent parallel review subagents — always general review, refactor/code-smell, bug hunter, security, and spec/scope verifier, plus any specialized language/area reviewer the runtime provides — then fix or justify every finding, document each justification in the marked status comment, and repeat rounds until convergence. The loop has a maximum of five review rounds unless the issue explicitly sets a different cap. After each review round, post or emit a round summary with the round number, reviewers/lenses run, findings by severity, fixed findings, justified findings, deferred or blocked findings, verification rerun, and whether the loop continues, converged, or blocked at the cap. If the cap is reached without convergence, post a blocked status. Then pass the confidence and test-gap self-gates. Implementation is not done until the loop converges and both self-gates pass.
-
-## Commit and Destination Policy
-
-After implementation and verification are complete, use the default integration path unless the issue itself contains an explicit requirement or rule for a different handoff: rebase the issue worktree onto the local main branch, squash to the minimal number of squashed commits that preserves reviewable behavior and rollback boundaries, and integrate into the local main branch.
-
-A ticket is completed only when the code is in the main branch. An open PR is not sufficient for ticket completion. Feature branches and PRs are review handoff states unless the issue explicitly requires them as the terminal path.
-
-Before pushing, merging, opening a PR, marking a PR ready, applying `llm-review`, or posting a review-ready handoff, confirm the destination:
-
-- integrate to the default branch (`main` or `master`) for completion
-- create or update a feature branch without a PR only when the issue explicitly requires that handoff
-- create or update a feature branch with a PR only when the issue explicitly requires that handoff or human review before main integration
-
-Record the answer in `final_destination` as `main`, `master`, `feature_branch`, or `feature_branch_pr`. If the answer is missing, ambiguous, or still `undecided`, stop with `llm-blocked` or emit `REQUIRED_LINEAR_MUTATIONS`; do not infer from the plan, branch name, existing issue worktree, or existing draft PR.
-
-Leave the minimal number of squashed commits: split only by reviewable behavior or risk boundary, not by every tiny edit and not as one unrelated bulk commit.
-
-Use semver syntax through Conventional Commit style and include the Linear issue ID in every commit subject, for example:
-
-```text
-feat(HCL-123): add dashboard persistence
-fix(HCL-123): repair status extraction
-test(HCL-123): cover dashboard validation
-```
-
-### Linear Magic Word Linking
-
-Link the work to the Linear issue with a closing magic word plus the issue ID so Linear auto-links and advances status (In Progress on push/open, Done when the change reaches the default branch):
-
-- Feature-branch-with-PR destination: put a closing magic word and the issue ID in the PR description, for example `Fixes HCL-123` (multiple issues: `Fixes HCL-123, HCL-124`). Magic words only work in the PR title or description, not in a PR comment.
-- Direct-to-main destinations (`main`/`master`): add a `Fixes HCL-123` line to the commit message body in addition to the Conventional Commit subject above. Feature branch without PR is a handoff exception only when the issue explicitly requires it.
-- Closing magic words: `close/closes/closed/closing`, `fix/fixes/fixed/fixing`, `resolve/resolves/resolved/resolving`, `complete/completes/completed/completing`, `implements/implemented/implementing`. Prefer `Fixes`. The Conventional Commit subject keeps the `(HCL-123)` scope for readability and commit-evidence closeout; the magic word drives the Linear automation.
-- Because a closing magic word moves the issue to Done on merge, `linear-close` runs as verify-and-finalize: it tolerates an already-Done issue and still verifies evidence, updates the dashboard, posts the closeout comment, and strips `llm-*` and `in-use`.
-
-Report the final commit list and chosen destination in the status comment.
-
-Before review-ready handoff, confirm the final destination was explicitly chosen, temporary lane worktrees were cleaned up, and the issue worktree cleanup state is explicitly listed as cleaned or intentionally kept.
-
-## Linear MCP Contract
-
-Use these Linear MCP tools when available:
-
-- `get_issue` - read the current issue, labels, status, and branch metadata.
-- `list_comments` - find the newest marked plan and status comments before acting.
-- `save_comment` - post marked implementation status, questions, blockers, and review-ready evidence.
-- `save_issue` - apply `llm-active`, `llm-blocked`, or `llm-review`, remove other `llm-*` labels, add the `in-use` claim on start and remove it on stop, update issue description dashboard, and update status when writes are available.
-
-When the issue is a sub-issue, apply the Parent and Sub-Issue Rule from `docs/workflow.md` in the same finalization pass: on `llm-active` move the parent to `llm-active` and In Progress; on `llm-blocked` roll the parent state up per the rule. Never take an `in-use` claim on the parent.
-
-Validate status comments and the issue description dashboard with:
+Close only when the change is on main. Capture evidence and verify it:
 
 ```sh
-scripts/validate_marked_comments.ts --description <issue-description-file> <status-comment-file>
+gh pr view <PR> --json url,state,isDraft,baseRefName,mergeCommit,statusCheckRollup,commits > pr.json
+scripts/verify_closeout.ts --issue-id <ISSUE-ID> --pr pr.json --repo . --base origin/main
+scripts/verify_closeout.ts --issue-id <ISSUE-ID> --commit commit.json --repo . --base origin/main
+scripts/verify_closeout.ts --issue-id <ISSUE-ID> --release release.json --repo . --base origin/main
 ```
 
-Before applying `llm-review` or claiming review-ready, run the hard handoff gate:
+`commit.json` is `{ "oid", "subject", "statusCheckRollup": [...] }`; `release.json` lists
+`statusCheckRollup` plus `files: [{ "path", "contains" }]` for squash or import releases. For an issue moved
+to another team, add `--implemented-issue-id <OLD-ID>` and name both IDs in the closeout comment.
 
-```sh
-scripts/verify_handoff.ts --issue-id <ISSUE-ID> --status <status-comment-file> --description <issue-description-file>
-```
+When the evidence passes, move the issue to Done (already Done through the magic word is expected), post
+`<!-- linear-ai:closed -->` with the evidence, and remove the worktree. When it fails, keep the issue in In
+Review and report what is missing.
 
-If a Linear metadata snapshot is available, validate labels with:
+## Sub-Issues
 
-```sh
-scripts/validate_marked_comments.ts --metadata <metadata.json> <status-comment-file>
-```
+When the issue has a parent: moving the child to In Progress moves the parent to In Progress if it was
+earlier; the parent is Done when every child is Done or Canceled.
 
-Use the local JavaScript package manager or runtime available to the agent: Bun can run the `.ts` scripts directly; Node/npm/pnpm/yarn environments should run them through a TypeScript runner such as `tsx`.
+## Without Linear Writes
 
-If Linear MCP write tools are unavailable, do not claim labels, status, or comments were updated. Emit `REQUIRED_LINEAR_MUTATIONS` with the exact marked status comment and label/status changes.
+If Linear write tools are unavailable, do not claim that anything changed in Linear. Print the exact
+status changes and comments the human has to apply.
 
-## Step Completion Handoff
+## Handoff
 
-When implementation completes a task, blocker update, verification pass, or review-ready status, report what changed, verification evidence, current Linear labels/status, PR or patch links when present, and the recommended next step. Ask if there is anything else to add for blocker, abandoned, or review-ready handoffs, or when no safe unambiguous task remains. Do not ask whether to continue after routine completed tasks; continue to the next unchecked task, verification, or review handoff while work remains and the next step is safe and unambiguous.
+Finish with: current status, what changed, evidence (commands and results), anything missing or open, and
+the recommended next skill. Ask whether the human wants to continue with it; do not run it automatically.
 
-After the add-more question is answered "no" at a blocker, abandoned, or review-ready handoff, ask whether the user wants to continue with the recommended next skill. Name the recommended next skill explicitly and wait for user confirmation; do not auto-run it.
-
-Use this response shape:
-
-- Current phase
-- What changed
-- Evidence
-- Missing evidence
-- Open blocker
-- Recommended next step
-- Recommended next skill
-- Question: Is there anything else to add before moving on?
-- Question: Do you want to continue with the recommended next skill?
-
-Stop when implementation is verified, PR links are present when applicable, and the issue has a marked status comment with `implementation_status` set to `review_ready`, `blocked`, `active`, or `abandoned`.
+Scripts run with Bun directly or with `tsx` under Node.

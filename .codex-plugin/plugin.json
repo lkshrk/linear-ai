@@ -1,7 +1,7 @@
 {
   "name": "linear-ai",
   "version": "1.6.3",
-  "description": "Linear issue intake, setup checks, status detection, refinement, implementation, review, closeout, and batch queue orchestration workflows for AI-assisted delivery.",
+  "description": "Linear issue intake, refinement, implementation and closeout, status and setup checks, review and reconciliation workflows for AI-assisted delivery, using Linear statuses as the workflow state.",
   "author": {
     "name": "Linear AI"
   },
@@ -16,7 +16,7 @@
   "interface": {
     "displayName": "Linear AI",
     "shortDescription": "Create, inspect, refine, implement, batch, review, and close Linear issues.",
-    "longDescription": "Workflow skills and local validators for Markdown-first Linear issue setup checks, status detection, intake, implementation planning, agent execution, batch refinement/implementation/closeout queues, dashboard progress, review handoff, and post-merge closeout.",
+    "longDescription": "Workflow skills for Linear-driven delivery: intake (technical and plain-language), refinement into an eleven-section issue template checked by a local validator, implementation in issue worktrees with bounded review rounds and verified closeout on main, status and setup checks with migration from v1, repository review into tickets, and reconciliation of issue-linked git work.",
     "developerName": "Linear AI",
     "category": "Productivity",
     "capabilities": [

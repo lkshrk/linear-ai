@@ -1,20 +1,13 @@
 {
   "name": "linear-ai",
   "version": "1.6.3",
-  "description": "Linear issue intake, refinement, implementation, and review workflow skills.",
+  "description": "Linear issue intake, refinement, implementation, closeout, status and review workflow skills using Linear statuses as the state.",
   "skills": [
-    "./skills/linear-batch-close",
-    "./skills/linear-batch-implement",
-    "./skills/linear-batch-refine",
-    "./skills/linear-create-issue",
-    "./skills/linear-nontech-intake",
+    "./skills/linear-intake",
     "./skills/linear-refine",
     "./skills/linear-implement",
-    "./skills/linear-close",
-    "./skills/linear-deliver-feature",
     "./skills/linear-status",
-    "./skills/linear-doctor",
     "./skills/linear-review",
-    "./skills/linear-repo-reconcile"
+    "./skills/linear-reconcile"
   ]
 }

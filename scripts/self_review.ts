@@ -4,7 +4,6 @@ import path from "node:path";
 const ROOT = path.resolve(import.meta.dirname, "..");
 
 const SCAN_PATHS = [
-  "agents",
   "docs",
   "skills",
   "templates",

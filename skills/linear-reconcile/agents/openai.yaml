@@ -1,0 +1,17 @@
+interface:
+  display_name: "Linear Reconcile"
+  short_description: "Reconcile issue-linked git work with Linear."
+  default_prompt: "Use $linear-reconcile to audit issue-linked branches, worktrees, commits, and PRs, then reconcile repo and Linear state."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for issue, comment and status evidence and changes."
+    - type: "shell"
+      value: "git"
+      description: "Git CLI for branch, worktree, merge-base, patch-equivalence, and cleanup checks."
+    - type: "shell"
+      value: "gh"
+      description: "GitHub CLI for PR state, checks, merge commits, and CI evidence when available."
+policy:
+  allow_implicit_invocation: true

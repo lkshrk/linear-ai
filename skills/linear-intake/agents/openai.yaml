@@ -1,0 +1,11 @@
+interface:
+  display_name: "Linear Intake"
+  short_description: "File rough or plain-language reports as Linear issues."
+  default_prompt: "Use $linear-intake to turn this report into a Linear issue in Backlog."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear MCP server for teams, projects, labels, and issue writes."
+policy:
+  allow_implicit_invocation: true
