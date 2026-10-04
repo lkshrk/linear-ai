@@ -1,6 +1,6 @@
 {
   "name": "linear-ai",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "description": "Linear issue intake, refinement, implementation, closeout, status and review workflow skills using Linear statuses as the state.",
   "skills": [
     "./skills/linear-intake",

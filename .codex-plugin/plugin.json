@@ -1,6 +1,6 @@
 {
   "name": "linear-ai",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "description": "Linear issue intake, refinement, implementation and closeout, status and setup checks, review and reconciliation workflows for AI-assisted delivery, using Linear statuses as the workflow state.",
   "author": {
     "name": "Linear AI"
