@@ -1,22 +1,27 @@
 # Linear AI
 
-Linear AI is a development workflow kit for using Linear as the source of truth for AI-assisted feature delivery.
+Linear AI is a development workflow kit for using Linear as the source of truth for AI-assisted delivery,
+in Codex, Claude Code and other agent runtimes.
 
 It gives agents a repeatable path for one issue:
 
-1. Create or clean up the Linear issue.
-2. Refine it into an implementation-ready plan.
-3. Track progress in one dashboard block in the issue description.
-4. Implement in an issue worktree, verify through bounded review rounds, integrate into main, and close only after mainline evidence is proven.
+1. Create the issue (`linear-intake`).
+2. Refine its description into an implementation-ready issue (`linear-refine`).
+3. Implement it in an issue worktree, review it in bounded rounds, integrate into main and close it once
+   the change is proven on main (`linear-implement`).
+
+The workflow state is the Linear status; the plan is the issue description. See `docs/workflow.md`.
 
 ## Workflow Guarantees
 
 - Ticket references include the issue ID, exact issue title, and a one-line description whenever an agent switches focus.
-- Issue claims use the `in-use` label plus a Linear-visible claim block so other agents can detect active or stale work.
-- Implementation always happens in `<repo>/.worktrees/<issue-id>-<optional suffix>`, never directly on branch working trees, `main`, or `master`.
-- The implementation review loop runs at most five rounds by default and posts a round summary after each round.
-- The default integration path is to rebase the issue worktree onto the local main branch, squash to the minimal number of reviewable commits, and integrate into main.
-- A ticket is complete only when the code is in the main branch. An open PR is review handoff evidence, not completion evidence, unless the issue explicitly requires a different terminal path.
+- An agent acts only on issues the human names, issues delegated or assigned to the AI app, or issues with the opt-in label (default `autopilot`).
+- The claim is the assignee or delegate plus In Progress; a stale claim is taken over with a comment.
+- An issue is Todo only when its description passes `scripts/validate_issue.ts`.
+- Implementation always happens in `<repo>/.worktrees/<issue-id>-<optional suffix>`, never directly on `main` or `master`.
+- The review loop runs at most five rounds by default.
+- A ticket is Done only when the code is on the main branch, proven by `scripts/verify_closeout.ts`. An open PR is handoff evidence, not completion.
+- The state model matches nightshift's, so manual sessions and nightshift can share a workspace.
 
 ## Install
 
@@ -30,10 +35,10 @@ Install all skills into Codex and Claude Code:
 npx skills add lkshrk/linear-ai --agent codex --agent claude-code
 ```
 
-Install only the full delivery workflow:
+Install only the implementation skill:
 
 ```sh
-npx skills add lkshrk/linear-ai --skill linear-deliver-feature --agent codex
+npx skills add lkshrk/linear-ai --skill linear-implement --agent codex
 ```
 
 List available skills before installing:
@@ -74,58 +79,30 @@ codex mcp login linear
 
 ## Required Linear Setup
 
-Run `linear-doctor` against live Linear metadata before using the workflow in a new workspace. It verifies that agents can discover teams, projects, labels, statuses, and the mutations needed to keep issue state consistent.
+Run `linear-status` in doctor mode before first use in a workspace. It checks against live Linear data that
+every team in scope has the statuses Backlog, Todo, In Progress, In Review, Blocked (type started), Done and
+Canceled, that type labels exist, and whether v1 labels are still in use.
 
-Required workflow labels:
+No workflow labels are required. Optional:
 
-- `llm-refine` - issue needs clarification or planning.
-- `llm-ready` - issue has an accepted implementation plan.
-- `llm-active` - implementation is in progress.
-- `llm-blocked` - issue is blocked and needs user input or external change.
-- `llm-review` - implementation is ready for review or closeout evidence.
-- `in-use` - claim label used with the Linear-visible claim block to prevent duplicate active work and detect stale claims.
+- an opt-in label (default `autopilot`) for issues an agent may pick up on its own;
+- `ai-stage:<stage>` labels, only for issues meant to continue in nightshift.
 
-Required Superpowers labels:
+### Upgrading From v1
 
-- `sp-clarify`
-- `sp-plan`
-- `sp-implement`
-- `sp-review`
-- `sp-verify`
-
-Required planning labels and conventions:
-
-- Use a `bug` or `feature` type label, or the workspace's equivalent type labels, on normal work items.
-- Use an `EPIC` label for larger features or changes that span multiple systems.
-- An EPIC issue is a container with a title, description, out-of-scope section, references, and linked work-package issues.
-- Work-package issues carry the normal `llm-*` workflow label and reference their EPIC when they are part of one.
-- Exactly one `llm-*` workflow label should be active on an issue at a time. The `in-use` claim label may coexist with that workflow label while an agent owns the issue.
-
-Recommended status mapping:
-
-- `llm-refine` -> backlog, triage, or todo status.
-- `llm-ready` -> ready status.
-- `llm-active` -> in-progress status.
-- `llm-blocked` -> blocked status.
-- `llm-review` -> in-review status.
-- Done/complete status only after closeout evidence proves the code reached the required integration target.
-
-Target teams, projects, component labels, priorities, and milestone conventions are workspace-specific. Agents should read them from Linear metadata instead of hardcoding local names.
+v1 kept the state in `llm-*` labels, an `in-use` claim label, plan/status comments and a dashboard block.
+Run `linear-status` in migrate mode: it maps every open v1 issue to a status, moves usable plan content into
+the description, shows the full list of changes, and applies it after approval. The v1 labels are archived
+only after every open issue is migrated.
 
 ## Skills
 
-- `linear-create-issue` - turn a rough report or idea into a Linear-ready issue.
-- `linear-nontech-intake` - interview a non-technical user and create a Linear issue marked for technical refinement.
-- `linear-refine` - interview, clarify, and write a ready implementation plan.
-- `linear-implement` - execute a ready plan in an issue worktree, update progress, run bounded review rounds, and integrate through the mainline path.
-- `linear-close` - verify mainline evidence from a merged PR, direct issue-ID commit, or squash/import release evidence and close the Linear issue after review.
-- `linear-batch-refine` - list refinement/blocker queues and run `linear-refine` per issue.
-- `linear-batch-implement` - list ready issues, confirm bounded parallelism, and run isolated `linear-implement` subagents.
-- `linear-batch-close` - list review issues, confirm bounded parallelism, and run `linear-close` per issue.
-- `linear-deliver-feature` - run the full create/refine/implement/review/closeout workflow.
-- `linear-status` - inspect an issue and recommend the next workflow step.
-- `linear-doctor` - check required Linear teams, projects, and labels.
+- `linear-intake` - turn a rough report, idea or a non-technical person's report into a Linear issue in Backlog.
+- `linear-refine` - clarify an issue one question at a time and write its description in the template until it validates; moves it to Todo. Batch mode for several issues.
+- `linear-implement` - claim a ready issue, implement it in a worktree with bounded review rounds, integrate into main, verify and close. Batch mode for several issues.
+- `linear-status` - show where an issue stands and the next step; doctor mode for workspace setup; migrate mode for v1.
 - `linear-review` - run parallel reviewers, dedup findings, and turn survivors into Linear tickets.
+- `linear-reconcile` - bring issue-linked branches, worktrees, commits and PRs back in line with Linear.
 
 ## Usage
 
@@ -135,37 +112,29 @@ Start from actual Linear state:
 Use linear-status to inspect HCL-123 and tell me the current phase.
 ```
 
-Prepare an issue:
+File an issue:
 
 ```text
-Use linear-create-issue for this feature idea. Query available teams, projects, and Linear labels first; propose matching tags and ask whether to add more.
+Use linear-intake for this feature idea. Query teams, projects and labels first; propose matching labels and ask whether to add more.
 ```
 
-Refine a plan:
+Refine it:
 
 ```text
-Use linear-refine on HCL-123. Grill me until the plan is implementation-ready.
+Use linear-refine on HCL-123. Grill me until the description is implementation-ready.
 ```
 
-Deliver a feature:
+Implement and close it:
 
 ```text
-Use linear-deliver-feature on HCL-123. Keep Linear updated with the issue description dashboard and status comments.
+Use linear-implement on HCL-123.
 ```
 
 Process a queue:
 
 ```text
-Use linear-batch-implement for H-cloud Linear-AI issues. Show the queue, ask for parallelism, and dispatch isolated linear-implement subagents.
+Use linear-implement in batch mode for the Todo issues of the Linear-AI project. Show the queue and ask for parallelism.
 ```
-
-Close a reviewed issue after a merged PR, direct issue-ID commit, or squash/import release:
-
-```text
-Use linear-close on HCL-123 after the PR is merged, an issue-ID commit is on main, or current main has the expected release file/content evidence with passing release/main checks.
-```
-
-An open PR alone is not enough to complete a ticket. Closeout requires proof that the code is on the main branch, unless the issue itself explicitly defines another terminal path.
 
 ## Local Development
 
@@ -191,10 +160,9 @@ Run checks:
 ```sh
 make test
 make validate
-make verify-handoff
 make install-smoke
 make skills-smoke
-make skills-sync          # mirror referenced files into each skill dir after editing docs/agents/templates/scripts/schemas
+make skills-sync          # mirror referenced files into each skill dir after editing docs/templates/scripts/schemas
 make skills-sync-check    # fail if any skill bundle is stale (runs in pre-commit)
 make marketplace-generate
 make marketplace-smoke
@@ -207,15 +175,15 @@ bun scripts/create_release.ts patch --dry-run
 - `skills/` - portable agent skills. Each skill bundles copies of the root files its `SKILL.md` references (kept in sync by `make skills-sync`) so `npx skills add` installs a self-contained skill.
 - `.codex-plugin/plugin.json` - Codex plugin manifest.
 - `.claude-plugin/plugin.json` - Claude Code plugin compatibility manifest.
-- `agents/` - runnable agent role prompts.
-- `templates/` - Linear issue and marked comment templates.
-- `schemas/` - machine-readable YAML schemas.
+- `templates/` - the issue template and the review-finding footer.
+- `schemas/` - the review-ledger schema.
 - `scripts/` - validators and install smoke checks.
 - `docs/install.md` - detailed install notes.
 - `docs/reviewer.md` - linear-review pipeline, dedup, triage, and ledger contract.
 - `docs/marketplace.md` - tap-style marketplace distribution.
-- `docs/tools.md` - helper command reference.
-- `docs/superpowers-linear-persistence.md` - Linear dashboard persistence contract.
+- `docs/workflow.md` - the workflow rules: scope, state, claiming, comments, implementation.
+- `docs/agent-required-passes.md` - grill pass, review loop and self-gates.
+- `docs/review-lanes.md` - review lanes, finding shape and fingerprint.
 
 ## Release
 

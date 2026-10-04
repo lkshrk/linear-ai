@@ -1,11 +1,11 @@
 interface:
   display_name: "Linear Refine"
-  short_description: "Clarify Linear issues into ready plans."
-  default_prompt: "Use $linear-refine to clarify this Linear issue into an implementation-ready plan."
+  short_description: "Refine Linear issues until they are ready."
+  default_prompt: "Use $linear-refine to clarify this Linear issue and make its description implementation-ready."
 dependencies:
   tools:
     - type: "mcp"
       value: "linear"
-      description: "Linear MCP server for issue reads, comments, labels, and status updates."
+      description: "Linear MCP server for issue reads, description updates, comments, and status changes."
 policy:
   allow_implicit_invocation: true

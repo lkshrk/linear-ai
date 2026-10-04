@@ -1,11 +1,17 @@
 interface:
   display_name: "Linear Implement"
-  short_description: "Implement ready Linear plans with status."
-  default_prompt: "Use $linear-implement to execute this ready Linear plan and keep status updated."
+  short_description: "Implement, integrate and close ready Linear issues."
+  default_prompt: "Use $linear-implement to implement this ready Linear issue and close it once the change is on main."
 dependencies:
   tools:
     - type: "mcp"
       value: "linear"
-      description: "Linear MCP server for issue reads, dashboard updates, status comments, and labels."
+      description: "Linear MCP server for issue reads, status changes, assignment, and comments."
+    - type: "shell"
+      value: "git"
+      description: "Git CLI for worktrees, rebase, squash and integration."
+    - type: "shell"
+      value: "gh"
+      description: "GitHub CLI for PRs, checks and merge evidence when available."
 policy:
   allow_implicit_invocation: true

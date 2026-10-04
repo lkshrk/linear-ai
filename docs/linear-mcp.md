@@ -33,14 +33,14 @@ codex mcp login linear
 
 This is credential-gated because it starts an OAuth flow and writes global Codex configuration.
 
-## Recommended V1 Use
+## Recommended First Use
 
 Use Linear MCP first for read-only or dry-run work:
 
-- fetch issues with `llm-refine`, `llm-ready`, or `llm-blocked`
+- fetch issues in Backlog, Todo or Blocked in the team and project in scope
 - read issue fields and comments
-- find newest marked plan/status comment
-- report the next recommended workflow action
+- validate the description with `scripts/validate_issue.ts`
+- report the next recommended workflow action (`linear-status`)
 
 Do not start with automatic writes.
 

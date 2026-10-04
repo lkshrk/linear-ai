@@ -1,6 +1,6 @@
 # Reviewer
 
-`linear-review` runs the reviewer lanes in `agents/reviewer.md`, dedups findings, and turns survivors into Linear tickets. It runs against a target repository under review, not the linear-ai tooling repo.
+`linear-review` runs the reviewer lanes in `docs/review-lanes.md`, dedups findings, and turns survivors into Linear tickets. It runs against a target repository under review, not the linear-ai tooling repo.
 
 ## Invocation and scope
 
@@ -21,7 +21,7 @@ Confirm before fanning out, each with a recommended default:
 
 ```text
 scope resolve
-  -> fan-out (parallel review lanes, agents/reviewer.md)
+  -> fan-out (parallel review lanes, docs/review-lanes.md)
   -> collect + normalize findings
   -> fingerprint
   -> dedup (drop ledger-ignored, ledger-ticketed, live Linear footer matches)
@@ -49,7 +49,7 @@ entries:
     recorded_at: "2026-06-21T14:32:00Z"
 ```
 
-The fingerprint algorithm is defined in `agents/reviewer.md`: `category + coarse_anchor + content_hash(normalized snippet)`, never line-anchored.
+The fingerprint algorithm is defined in `docs/review-lanes.md`: `category + coarse_anchor + content_hash(normalized snippet)`, never line-anchored.
 
 The ledger is local-only and per-clone. A fresh clone or CI re-surfaces findings once; Linear footer search is the only cross-machine dedup. This is the accepted trade for keeping ignore decisions out of version control.
 
@@ -86,10 +86,11 @@ High-confidence MEDIUM defaults to ticket, not defer: a review whose purpose is 
 
 ## Ticket creation
 
-Each chosen finding becomes a Linear issue following `linear-create-issue` conventions:
+Each chosen finding becomes a Linear issue following `linear-intake` conventions, with the description in the `templates/issue.md` structure:
 
-- `bug` label for bugs, security, and silent-failure findings; otherwise the feature/tech-debt template.
-- `llm-refine`, removing any other `llm-*` state per `docs/agent-required-passes.md`.
+- `bug` label for bugs, security, and silent-failure findings; otherwise the workspace's feature or tech-debt type label.
+- `## Goal` = the fix, `## Why` = the finding (problem, evidence, severity), `## Files` = the location; the remaining sections stay as placeholders for refinement.
+- status Backlog (the ticket still needs `linear-refine`).
 - The `linear-ai:review-finding` footer (`templates/linear-review-finding-footer.md`) appended to the description for live dedup.
 - Default one ticket per finding; offer to group near-duplicate findings into a single ticket.
 
@@ -97,13 +98,13 @@ When ticketed, write the fingerprint to the ledger with `state: ticketed` and th
 
 ## Handoff
 
-- Draft only — tickets land at `llm-refine`; stop and recommend `linear-refine` or `linear-batch-refine`.
-- Draft + refine — chain directly into `linear-refine` (or `linear-batch-refine` for several) on the created tickets, carrying each finding's evidence and suggested fix as refinement context.
+- Draft only — tickets land in Backlog; stop and recommend `linear-refine` (batch mode for several).
+- Draft + refine — chain directly into `linear-refine` (batch mode for several) on the created tickets, carrying each finding's evidence and suggested fix as refinement context.
 
 ## Edge handling
 
-- No claim lock — review is repo-wide, not scoped to one issue, so it takes no `in-use` claim. Created tickets follow the normal Claim Lock Rule afterward.
-- Linear writes unavailable — emit `REQUIRED_LINEAR_MUTATIONS` with the exact issue bodies, labels, and footers; still write the local ledger.
+- No claim — review is repo-wide, not scoped to one issue. Created tickets follow the normal claiming rules afterwards.
+- Linear writes unavailable — print the exact issue bodies, labels and footers for the human; do not write the local ledger until the issues exist.
 - Clean review — report "no new findings" plus dedup counts.
 
 ## Linear MCP contract
@@ -114,4 +115,4 @@ Use these Linear MCP tools when available:
 - `save_issue` — create the finding issue, apply labels, append the footer.
 - `list_comments` — read existing marked comments when chaining into refinement.
 
-If Linear MCP write tools are unavailable, do not claim issues were created. Emit `REQUIRED_LINEAR_MUTATIONS` and still write the local ledger.
+If Linear MCP write tools are unavailable, do not claim issues were created; print them for the human and write the ledger only once they exist.

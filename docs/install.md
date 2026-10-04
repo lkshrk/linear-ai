@@ -13,7 +13,7 @@ npx skills add . --skill '*' --agent '*'
 Install only the full workflow:
 
 ```sh
-npx skills add . --skill linear-deliver-feature --agent '*'
+npx skills add . --skill linear-implement --agent '*'
 ```
 
 Install into Claude Code:
@@ -45,11 +45,11 @@ Use the repo-local linear-status skill to inspect HCL-123 and tell me the curren
 ```
 
 ```text
-Use the repo-local linear-deliver-feature skill to deliver HCL-123. Start by checking actual Linear state.
+Use the repo-local linear-implement skill to implement HCL-123. Start by checking actual Linear state.
 ```
 
 ```text
-Use the repo-local linear-doctor skill to check whether my Linear labels, projects, and teams are ready.
+Use the repo-local linear-status skill in doctor mode to check whether my Linear statuses, labels, projects, and teams are ready.
 ```
 
 ## Claude Code Plugin Compatibility
@@ -62,17 +62,12 @@ Claude Code compatibility is provided by:
 
 That manifest declares the skill paths explicitly so tools that understand Claude Code plugin manifests can discover the same canonical skill files:
 
-- `linear-create-issue`
+- `linear-intake`
 - `linear-refine`
 - `linear-implement`
-- `linear-close`
-- `linear-batch-refine`
-- `linear-batch-implement`
-- `linear-batch-close`
-- `linear-deliver-feature`
 - `linear-status`
-- `linear-doctor`
 - `linear-review`
+- `linear-reconcile`
 
 The project does not duplicate skill bodies under `.claude/skills/`; use the skills CLI to install or symlink them into Claude Code.
 

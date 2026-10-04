@@ -89,7 +89,7 @@ async function main(): Promise<number> {
   }
 
   const scripts = packageJson.scripts as Record<string, string> | undefined;
-  for (const script of ["validate:node", "metadata:node", "intake:node", "marketplace:generate", "marketplace:generate:node", "marketplace:publish", "marketplace:publish:node", "marketplace:smoke", "marketplace:smoke:node", "release:create", "release:create:node", "release:check", "release:check:node", "verify:handoff", "verify:handoff:node", "metadata:capture", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
+  for (const script of ["validate", "validate:node", "validate:issue", "marketplace:generate", "marketplace:generate:node", "marketplace:publish", "marketplace:publish:node", "marketplace:smoke", "marketplace:smoke:node", "release:create", "release:create:node", "release:check", "release:check:node", "self-review:node", "install:smoke:node", "skills:smoke", "skills:smoke:node"]) {
     if (!scripts?.[script]) errors.push(`package.json missing ${script} script`);
   }
 

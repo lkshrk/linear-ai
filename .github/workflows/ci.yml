@@ -42,8 +42,6 @@ jobs:
       - name: Validate marked comments
         run: make validate
 
-      - name: Verify review handoff fixture
-        run: make verify-handoff
 
       - name: Run self review checks
         run: make self-review
@@ -62,9 +60,6 @@ jobs:
 
       - name: Validate Node runner compatibility
         run: npm run validate:node
-
-      - name: Verify Node handoff compatibility
-        run: npm run verify:handoff:node -- --issue-id CIV-999 --status examples/review-ready-status-comment.md --dashboard examples/review-ready-dashboard-comment.md
 
       - name: Run Node self review compatibility
         run: npm run self-review:node
